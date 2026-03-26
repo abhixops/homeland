@@ -1,0 +1,123 @@
+# Homeland Dashboard Configuration
+# Hot-reload: changes to this file are detected automatically
+
+settings:
+  title: "Homeland"
+  port: 3000
+  theme: dark  # dark | light
+  health_check:
+    interval: 30  # seconds
+    timeout: 5    # seconds
+  auth:
+    enabled: false
+    username: admin
+    password: changeme
+
+groups:
+  - name: Media
+    icon: play-circle
+    apps:
+      - name: Jellyfin
+        url: https://jellyfin.infinitygate.fun
+        icon: jellyfin
+        description: Media server
+        healthcheck:
+          type: http
+          endpoint: /health
+
+      - name: Radarr
+        url: https://radarr.infinitygate.fun
+        icon: radarr
+        description: Movie manager
+        healthcheck:
+          type: http
+          endpoint: /web
+
+      - name: Sonarr
+        url: https://sonarr.infinitygate.fun
+        icon: sonarr
+        description: TV show manager
+        healthcheck:
+          type: http
+          endpoint: /
+
+  - name: Infrastructure
+    icon: server
+    apps:
+      - name: Portainer
+        url: http://localhost:9443
+        icon: portainer
+        description: Container management
+        healthcheck:
+          type: http
+          endpoint: /api/status
+
+      - name: Traefik
+        url: http://localhost:8080
+        icon: traefik
+        description: Reverse proxy
+        healthcheck:
+          type: http
+          endpoint: /api/overview
+
+      - name: Pi-hole
+        url: http://localhost:8053
+        icon: pi-hole
+        description: DNS ad blocker
+        healthcheck:
+          type: http
+          endpoint: /admin
+
+      - name: Nginx Proxy Manager
+        url: http://localhost:81
+        icon: nginx-proxy-manager
+        description: Proxy management
+        healthcheck:
+          type: http
+          endpoint: /
+
+  - name: Monitoring
+    icon: activity
+    apps:
+      - name: Grafana
+        url: http://localhost:3001
+        icon: grafana
+        description: Dashboards & analytics
+        healthcheck:
+          type: http
+          endpoint: /api/health
+
+      - name: Prometheus
+        url: http://localhost:9090
+        icon: prometheus
+        description: Metrics collection
+        healthcheck:
+          type: http
+          endpoint: /-/healthy
+
+      - name: Uptime Kuma
+        url: http://localhost:3002
+        icon: uptime-kuma
+        description: Uptime monitoring
+        healthcheck:
+          type: http
+          endpoint: /
+
+  - name: Development
+    icon: code
+    apps:
+      - name: Gitea
+        url: http://localhost:3003
+        icon: gitea
+        description: Git hosting
+        healthcheck:
+          type: http
+          endpoint: /
+
+      - name: VS Code Server
+        url: http://localhost:8443
+        icon: code-server
+        description: Cloud IDE
+        healthcheck:
+          type: http
+          endpoint: /

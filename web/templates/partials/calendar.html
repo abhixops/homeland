@@ -1,0 +1,49 @@
+{{define "calendar.html"}}
+<div class="space-y-4">
+    <!-- Calendar Header -->
+    <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-surface-700 dark:text-surface-200 flex items-center space-x-2">
+            <svg class="w-4 h-4 text-homeland-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span>{{.MonthYear}}</span>
+        </h3>
+    </div>
+
+    <!-- Day Labels -->
+    <div class="grid grid-cols-7 text-center">
+        <div class="text-xs font-medium text-surface-400 dark:text-surface-500 py-1">Su</div>
+        <div class="text-xs font-medium text-surface-400 dark:text-surface-500 py-1">Mo</div>
+        <div class="text-xs font-medium text-surface-400 dark:text-surface-500 py-1">Tu</div>
+        <div class="text-xs font-medium text-surface-400 dark:text-surface-500 py-1">We</div>
+        <div class="text-xs font-medium text-surface-400 dark:text-surface-500 py-1">Th</div>
+        <div class="text-xs font-medium text-surface-400 dark:text-surface-500 py-1">Fr</div>
+        <div class="text-xs font-medium text-surface-400 dark:text-surface-500 py-1">Sa</div>
+    </div>
+
+    <!-- Calendar Grid -->
+    {{range .Calendar}}
+    <div class="grid grid-cols-7 text-center">
+        {{range .}}
+        <div class="py-1">
+            {{if .InMonth}}
+                {{if .IsToday}}
+                <span class="inline-flex items-center justify-center w-7 h-7 text-xs font-bold rounded-full bg-homeland-500 text-white shadow-lg shadow-homeland-500/30">
+                    {{.Day}}
+                </span>
+                {{else}}
+                <span class="inline-flex items-center justify-center w-7 h-7 text-xs text-surface-600 dark:text-surface-300 rounded-full hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
+                    {{.Day}}
+                </span>
+                {{end}}
+            {{else}}
+            <span class="inline-flex items-center justify-center w-7 h-7 text-xs text-surface-300 dark:text-surface-700">
+                {{.Day}}
+            </span>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+{{end}}

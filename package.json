@@ -1,0 +1,11 @@
+{
+  "name": "homeland-css",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i web/static/css/app.css -o web/static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i web/static/css/app.css -o web/static/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

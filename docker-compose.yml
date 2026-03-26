@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  homeland:
+    build: .
+    container_name: homeland
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount your config file for easy editing
+      - ./configs/homepage.yaml:/app/configs/homepage.yaml:ro
+      # Mount Docker socket for container auto-discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Persist cached icons across restarts
+      - homeland-icons:/app/web/static/icons
+    environment:
+      - TZ=UTC
+    # Uncomment to set the config path explicitly:
+    # - HOMELAND_CONFIG=/app/configs/homepage.yaml
+
+volumes:
+  homeland-icons:

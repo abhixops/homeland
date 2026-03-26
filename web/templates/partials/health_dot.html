@@ -1,0 +1,15 @@
+{{define "health_dot.html"}}
+{{range $name, $status := .HealthMap}}
+<span class="relative flex h-3 w-3" id="health-{{$name}}">
+    {{if eq $status "up"}}
+    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" title="{{$name}}: Online"></span>
+    {{else if eq $status "down"}}
+    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500" title="{{$name}}: Offline"></span>
+    {{else}}
+    <span class="relative inline-flex rounded-full h-3 w-3 bg-surface-300 dark:bg-surface-600" title="{{$name}}: Unknown"></span>
+    {{end}}
+</span>
+{{end}}
+{{end}}
