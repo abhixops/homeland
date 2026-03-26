@@ -12,7 +12,7 @@ COPY web/templates/ web/templates/
 RUN npx tailwindcss -i web/static/css/app.css -o web/static/css/tailwind.css --minify
 
 # Stage 2: Build Go binary
-FROM golang:1.22-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 RUN apk add --no-cache git
 WORKDIR /build
 COPY go.mod go.sum ./
