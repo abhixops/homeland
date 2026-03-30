@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 // The selfh.st icons CDN base URL (via jsDelivr).
@@ -20,9 +21,10 @@ const defaultIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="64" heigh
 
 // Fetcher manages icon downloads and local caching.
 type Fetcher struct {
-	cacheDir string
-	mu       sync.Mutex
-	fetching map[string]bool // tracks in-progress fetches to avoid duplicates
+	cacheDir   string
+	mu         sync.Mutex
+	fetching   map[string]bool // tracks in-progress fetches to avoid duplicates
+	httpClient *http.Client
 }
 
 // NewFetcher creates a new icon fetcher that caches files in the given directory.
@@ -34,6 +36,9 @@ func NewFetcher(cacheDir string) *Fetcher {
 	f := &Fetcher{
 		cacheDir: cacheDir,
 		fetching: make(map[string]bool),
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 	// Write default fallback icon immediately so it's always available
 	f.ensureDefault()
@@ -60,6 +65,32 @@ func (f *Fetcher) GetIconPath(iconName string) string {
 
 	// Trigger async fetch
 	go f.fetch(cleanName, cachedPath)
+	return "/static/icons/default.svg"
+}
+
+// FetchIconSync fetches an icon synchronously. Returns the URL path for the icon.
+// Used during startup preloading to ensure icons are ready before serving requests.
+func (f *Fetcher) FetchIconSync(iconName string) string {
+	if iconName == "" {
+		return f.ensureDefault()
+	}
+
+	cleanName := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(iconName), ".svg"), ".png")
+	fileName := cleanName + ".svg"
+	cachedPath := filepath.Join(f.cacheDir, fileName)
+
+	// Check if already cached
+	if _, err := os.Stat(cachedPath); err == nil {
+		return "/static/icons/" + fileName
+	}
+
+	// Fetch synchronously (blocking)
+	f.fetch(cleanName, cachedPath)
+
+	// Check if fetch succeeded
+	if _, err := os.Stat(cachedPath); err == nil {
+		return "/static/icons/" + fileName
+	}
 	return "/static/icons/default.svg"
 }
 
@@ -96,7 +127,7 @@ func (f *Fetcher) fetch(name, destPath string) {
 
 // download fetches a URL and writes the response body to a file.
 func (f *Fetcher) download(url, destPath string) error {
-	resp, err := http.Get(url)
+	resp, err := f.httpClient.Get(url)
 	if err != nil {
 		return fmt.Errorf("GET %s: %w", url, err)
 	}
@@ -128,18 +159,34 @@ func (f *Fetcher) ensureDefault() string {
 	return "/static/icons/default.svg"
 }
 
-// PreloadIcons fetches all icons for a list of app names in parallel.
+// PreloadIcons fetches all icons synchronously in parallel with a global timeout.
+// This ensures icons are cached before the server starts accepting requests.
 func (f *Fetcher) PreloadIcons(iconNames []string) {
-	var wg sync.WaitGroup
-	for _, name := range iconNames {
-		if name == "" {
-			continue
+	done := make(chan struct{})
+	go func() {
+		var wg sync.WaitGroup
+		// Limit concurrency to avoid overwhelming the CDN
+		sem := make(chan struct{}, 5)
+		for _, name := range iconNames {
+			if name == "" {
+				continue
+			}
+			wg.Add(1)
+			go func(n string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				f.FetchIconSync(n)
+			}(name)
 		}
-		wg.Add(1)
-		go func(n string) {
-			defer wg.Done()
-			f.GetIconPath(n)
-		}(name)
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Printf("[icons] preloaded %d icons", len(iconNames))
+	case <-time.After(15 * time.Second):
+		log.Printf("[icons] preload timed out after 15s, continuing with cached icons")
 	}
-	wg.Wait()
 }

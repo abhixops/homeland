@@ -2,6 +2,7 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"log"
@@ -329,7 +330,15 @@ func fuzzyMatch(text, query string) bool {
 	return qi == len(query)
 }
 
-// renderTemplate executes a named template and writes the result to the response.
+// renderTemplate executes a named template safely. If execution fails,
+// it returns a minimal HTML fragment to prevent HTMX from thrashing the DOM.
 func (h *Handler) renderTemplate(c *fiber.Ctx, name string, data interface{}) error {
-	return h.Templates.ExecuteTemplate(c.Response().BodyWriter(), name, data)
+	var buf bytes.Buffer
+	if err := h.Templates.ExecuteTemplate(&buf, name, data); err != nil {
+		log.Printf("[api] template %s error: %v", name, err)
+		// Return a safe empty fragment — HTMX will swap this in without breaking anything
+		c.Set("Content-Type", "text/html")
+		return c.Status(200).SendString("<!-- template render error, retrying next cycle -->")
+	}
+	return c.Send(buf.Bytes())
 }

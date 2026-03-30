@@ -74,7 +74,7 @@ func main() {
 			iconNames = append(iconNames, app.Icon)
 		}
 	}
-	go iconFetcher.PreloadIcons(iconNames)
+	iconFetcher.PreloadIcons(iconNames)
 
 	// Docker discovery — reads container labels for auto-discovery
 	dockerDiscovery := docker.NewDiscovery(60 * time.Second)

@@ -14,8 +14,17 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Persist cached icons across restarts
       - homeland-icons:/app/web/static/icons
+      # Mount host proc and sys for accurate system metrics
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
     environment:
       - TZ=UTC
+      # Tell gopsutil to read host metrics instead of container metrics
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+    # Allow access to Docker socket (docker group GID, typically 999 or 998)
+    group_add:
+      - "999"
     # Uncomment to set the config path explicitly:
     # - HOMELAND_CONFIG=/app/configs/homepage.yaml
 

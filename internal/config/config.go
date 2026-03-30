@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v3"
@@ -134,6 +135,7 @@ func (m *Manager) load() error {
 
 // WatchFile starts a goroutine that watches the config file for changes
 // and reloads automatically. This enables hot-reload without restarting.
+// Includes a 500ms debounce to handle spurious events from Docker bind-mounts.
 func (m *Manager) WatchFile() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -142,6 +144,7 @@ func (m *Manager) WatchFile() {
 	}
 	go func() {
 		defer watcher.Close()
+		var debounce *time.Timer
 		for {
 			select {
 			case event, ok := <-watcher.Events:
@@ -149,17 +152,23 @@ func (m *Manager) WatchFile() {
 					return
 				}
 				if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					log.Printf("[config] detected change in %s, reloading...", m.filePath)
-					if err := m.load(); err != nil {
-						log.Printf("[config] reload error: %v", err)
-					} else {
-						log.Println("[config] reloaded successfully")
-						m.mu.RLock()
-						for _, fn := range m.onChange {
-							fn(m.config)
-						}
-						m.mu.RUnlock()
+					// Debounce: reset timer on each event, only fire after 500ms of quiet
+					if debounce != nil {
+						debounce.Stop()
 					}
+					debounce = time.AfterFunc(500*time.Millisecond, func() {
+						log.Printf("[config] detected change in %s, reloading...", m.filePath)
+						if err := m.load(); err != nil {
+							log.Printf("[config] reload error: %v", err)
+						} else {
+							log.Println("[config] reloaded successfully")
+							m.mu.RLock()
+							for _, fn := range m.onChange {
+								fn(m.config)
+							}
+							m.mu.RUnlock()
+						}
+					})
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {

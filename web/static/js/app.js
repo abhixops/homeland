@@ -81,6 +81,28 @@ function isInputFocused() {
 }
 
 // ── HTMX Event Hooks ──
+
+// Suppress swaps on error responses — prevents error HTML from replacing working content
+document.addEventListener('htmx:beforeSwap', (e) => {
+    const status = e.detail.xhr.status;
+    // If the server returned an error, keep existing content instead of swapping in error HTML
+    if (status >= 400 || status === 0) {
+        e.detail.shouldSwap = false;
+        e.detail.isError = false; // prevent HTMX from showing error state
+        console.warn(`[homeland] HTMX request to ${e.detail.pathInfo?.requestPath || 'unknown'} failed (${status}), keeping current content`);
+    }
+});
+
+// Log response errors silently without disrupting the UI
+document.addEventListener('htmx:responseError', (e) => {
+    console.warn('[homeland] HTMX response error:', e.detail);
+});
+
+// Handle connection errors (server unreachable) — prevent swap
+document.addEventListener('htmx:sendError', (e) => {
+    console.warn('[homeland] HTMX send error — server may be unreachable');
+});
+
 document.addEventListener('htmx:afterSwap', (e) => {
     if (e.detail.target.id === 'app-grid-container') {
         e.detail.target.querySelectorAll('.animate-fade-in').forEach((el, i) => {
