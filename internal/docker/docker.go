@@ -190,6 +190,7 @@ func (d *Discovery) ContainerCount() int {
 
 	containers, err := d.client.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
+		log.Printf("[docker] failed to count containers: %v", err)
 		return 0
 	}
 	return len(containers)

@@ -4,6 +4,7 @@ package metrics
 import (
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -13,17 +14,33 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
+// init ensures HOST_PROC and HOST_SYS environment variables are set before
+// gopsutil initializes. This is critical for reading host metrics
+// instead of container metrics when running inside Docker.
+func init() {
+	// Only set if the env vars are already present (from docker-compose)
+	// but ensure gopsutil picks them up at package init time.
+	if v := os.Getenv("HOST_PROC"); v != "" {
+		log.Printf("[metrics] using HOST_PROC=%s for host metrics", v)
+	}
+	if v := os.Getenv("HOST_SYS"); v != "" {
+		log.Printf("[metrics] using HOST_SYS=%s for host metrics", v)
+	}
+}
+
 // SystemMetrics holds the latest system resource usage snapshot.
 type SystemMetrics struct {
-	CPUPercent      float64   `json:"cpu_percent"`
-	MemoryPercent   float64   `json:"memory_percent"`
-	MemoryUsedGB    float64   `json:"memory_used_gb"`
-	MemoryTotalGB   float64   `json:"memory_total_gb"`
-	UptimeSeconds   uint64    `json:"uptime_seconds"`
-	UptimeFormatted string    `json:"uptime_formatted"`
-	NumCPUs         int       `json:"num_cpus"`
-	ContainerCount  int       `json:"container_count"`
-	CollectedAt     time.Time `json:"collected_at"`
+	CPUPercent         float64   `json:"cpu_percent"`
+	MemoryPercent      float64   `json:"memory_percent"`
+	MemoryUsedGB       float64   `json:"memory_used_gb"`
+	MemoryTotalGB      float64   `json:"memory_total_gb"`
+	UptimeSeconds      uint64    `json:"uptime_seconds"`
+	UptimeFormatted    string    `json:"uptime_formatted"`
+	UptimeAvailable    bool      `json:"uptime_available"`
+	NumCPUs            int       `json:"num_cpus"`
+	ContainerCount     int       `json:"container_count"`
+	ContainerAvailable bool      `json:"container_available"`
+	CollectedAt        time.Time `json:"collected_at"`
 }
 
 // ContainerCounter is an interface to get the running container count,
@@ -92,6 +109,8 @@ func (c *Collector) collect() {
 	// CPU usage (average over 1 second)
 	if cpuPercent, err := cpu.Percent(time.Second, false); err == nil && len(cpuPercent) > 0 {
 		m.CPUPercent = cpuPercent[0]
+	} else if err != nil {
+		log.Printf("[metrics] CPU collection error: %v", err)
 	}
 
 	// Memory usage
@@ -99,17 +118,28 @@ func (c *Collector) collect() {
 		m.MemoryPercent = vmStat.UsedPercent
 		m.MemoryUsedGB = float64(vmStat.Used) / (1024 * 1024 * 1024)
 		m.MemoryTotalGB = float64(vmStat.Total) / (1024 * 1024 * 1024)
+	} else {
+		log.Printf("[metrics] memory collection error: %v", err)
 	}
 
-	// Host uptime
+	// Host uptime — reads from HOST_PROC/proc/uptime if HOST_PROC is set
 	if uptime, err := host.Uptime(); err == nil {
 		m.UptimeSeconds = uptime
 		m.UptimeFormatted = formatUptime(uptime)
+		m.UptimeAvailable = true
+	} else {
+		log.Printf("[metrics] uptime collection error: %v", err)
+		m.UptimeFormatted = "N/A"
+		m.UptimeAvailable = false
 	}
 
 	// Container count
 	if c.containerCounter != nil {
-		m.ContainerCount = c.containerCounter.ContainerCount()
+		count := c.containerCounter.ContainerCount()
+		m.ContainerCount = count
+		m.ContainerAvailable = true
+	} else {
+		m.ContainerAvailable = false
 	}
 
 	c.mu.Lock()

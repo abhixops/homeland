@@ -103,14 +103,6 @@ document.addEventListener('htmx:sendError', (e) => {
     console.warn('[homeland] HTMX send error — server may be unreachable');
 });
 
-document.addEventListener('htmx:afterSwap', (e) => {
-    if (e.detail.target.id === 'app-grid-container') {
-        e.detail.target.querySelectorAll('.animate-fade-in').forEach((el, i) => {
-            el.style.animationDelay = `${i * 50}ms`;
-        });
-    }
-});
-
 // Close search results when clicking outside
 document.addEventListener('click', (e) => {
     const searchResults = document.getElementById('search-results');

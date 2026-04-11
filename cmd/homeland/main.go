@@ -66,6 +66,7 @@ func main() {
 
 	// Icon fetcher — downloads and caches icons from selfh.st CDN
 	iconFetcher := icons.NewFetcher(iconCacheDir)
+	iconStop := make(chan struct{})
 
 	// Preload icons for all configured apps in parallel
 	var iconNames []string
@@ -75,6 +76,9 @@ func main() {
 		}
 	}
 	iconFetcher.PreloadIcons(iconNames)
+
+	// Start background retry loop for any icons that failed during preload
+	iconFetcher.StartRetryLoop(iconStop)
 
 	// Docker discovery — reads container labels for auto-discovery
 	dockerDiscovery := docker.NewDiscovery(60 * time.Second)
@@ -125,6 +129,7 @@ func main() {
 	go func() {
 		<-quit
 		log.Println("shutting down...")
+		close(iconStop)
 		healthChecker.Stop()
 		dockerDiscovery.Stop()
 		metricsCollector.Stop()

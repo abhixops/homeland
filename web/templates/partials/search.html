@@ -6,7 +6,7 @@
        class="flex items-center space-x-3 px-4 py-3 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors border-b border-surface-100 dark:border-surface-800 last:border-b-0">
         <!-- App Icon -->
         <div class="w-8 h-8 rounded-lg bg-surface-50 dark:bg-surface-800 p-1.5 flex-shrink-0">
-            <img src="{{index $.IconMap .Name}}" alt="{{.Name}}" class="w-full h-full object-contain" onerror="this.src='/static/icons/default.svg'">
+            <img src="{{index $.IconMap .Name}}" alt="{{.Name}}" class="w-full h-full object-contain" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%222%22 y=%223%22 width=%2220%22 height=%2214%22 rx=%222%22/%3E%3Cline x1=%228%22 y1=%2221%22 x2=%2216%22 y2=%2221%22/%3E%3Cline x1=%2212%22 y1=%2217%22 x2=%2212%22 y2=%2221%22/%3E%3C/svg%3E'">
         </div>
 
         <!-- App Info -->

@@ -16,13 +16,18 @@
     <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/app.css">
 
-    <!-- HTMX for partial page updates -->
-    <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+    <!-- Server-side theme preference -->
+    <meta name="theme" content="{{.Theme}}">
+
+    <!-- HTMX 2.0 for partial page updates -->
+    <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+    <!-- Idiomorph extension for intelligent DOM morphing (partial updates without full swap) -->
+    <script src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js" defer></script>
 
     <!-- Alpine.js for reactive UI -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-surface-50 dark:bg-surface-950 text-surface-800 dark:text-surface-100 font-sans min-h-screen transition-colors duration-300">
+<body class="bg-surface-50 dark:bg-surface-950 text-surface-800 dark:text-surface-100 font-sans min-h-screen transition-colors duration-300" hx-ext="morph">
 
     <!-- ── Top Navigation Bar ── -->
     <nav class="sticky top-0 z-50 bg-white/80 dark:bg-surface-900/80 backdrop-blur-xl border-b border-surface-200 dark:border-surface-800">
@@ -105,7 +110,7 @@
             <div class="lg:col-span-3 space-y-6"
                  hx-get="/partial/grid"
                  hx-trigger="every 30s"
-                 hx-swap="innerHTML settle:100ms"
+                 hx-swap="morph:innerHTML"
                  id="app-grid-container">
                 {{template "app_grid.html" .}}
             </div>
@@ -116,7 +121,7 @@
                 <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-5 shadow-sm"
                      hx-get="/partial/calendar"
                      hx-trigger="every 60s"
-                     hx-swap="innerHTML settle:100ms"
+                     hx-swap="morph:innerHTML"
                      id="calendar-widget">
                     {{template "calendar.html" .}}
                 </div>
@@ -125,7 +130,7 @@
                 <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-5 shadow-sm"
                      hx-get="/partial/metrics"
                      hx-trigger="every 10s"
-                     hx-swap="innerHTML settle:100ms"
+                     hx-swap="morph:innerHTML"
                      id="metrics-widget">
                     {{template "metrics.html" .}}
                 </div>
