@@ -95,6 +95,8 @@ func main() {
 		ReadTimeout:           10 * time.Second,
 		WriteTimeout:          10 * time.Second,
 		IdleTimeout:           30 * time.Second,
+		EnableTrustedProxyCheck: false,
+		ProxyHeader:           fiber.HeaderXForwardedFor,
 	})
 
 	// Global middleware
