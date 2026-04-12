@@ -137,7 +137,7 @@ func main() {
 	}()
 
 	// ── Start Server ──
-	addr := fmt.Sprintf(":%d", cfg.Settings.Port)
+	addr := fmt.Sprintf("0.0.0.0:%d", cfg.Settings.Port)
 	log.Printf("🚀 Homeland ready in %v — listening on %s", time.Since(start).Round(time.Millisecond), addr)
 
 	if err := app.Listen(addr); err != nil {
