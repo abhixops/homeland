@@ -28,7 +28,7 @@ A lightweight, self-hosted homepage dashboard for homelab environments. Built wi
 ### Docker Compose (Recommended)
 
 ```bash
-git clone https://github.com/abhishek/homeland.git
+git clone https://github.com/abhixops/homeland.git
 cd homeland
 docker compose up -d
 ```

@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abhishek/homeland/internal/config"
-	dockerpkg "github.com/abhishek/homeland/internal/docker"
-	"github.com/abhishek/homeland/internal/health"
-	"github.com/abhishek/homeland/internal/icons"
-	"github.com/abhishek/homeland/internal/metrics"
+	"github.com/abhixops/homeland/internal/config"
+	dockerpkg "github.com/abhixops/homeland/internal/docker"
+	"github.com/abhixops/homeland/internal/health"
+	"github.com/abhixops/homeland/internal/icons"
+	"github.com/abhixops/homeland/internal/metrics"
 	"github.com/gofiber/fiber/v2"
 )
 

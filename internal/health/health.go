@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/abhishek/homeland/internal/config"
+	"github.com/abhixops/homeland/internal/config"
 )
 
 // Status represents the health state of a service.

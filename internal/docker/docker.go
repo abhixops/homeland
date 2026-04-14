@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/abhishek/homeland/internal/config"
+	"github.com/abhixops/homeland/internal/config"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )

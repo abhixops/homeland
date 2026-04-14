@@ -1,4 +1,4 @@
-module github.com/abhishek/homeland
+module github.com/abhixops/homeland
 
 go 1.25.0
 
