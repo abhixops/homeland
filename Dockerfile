@@ -34,6 +34,7 @@ COPY --from=css-builder /build/web/static/css/tailwind.css web/static/css/
 COPY web/templates/ web/templates/
 COPY web/static/js/ web/static/js/
 COPY web/static/css/app.css web/static/css/
+COPY web/static/assets/ web/static/assets/
 
 # Copy default config
 COPY configs/ configs/
