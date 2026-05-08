@@ -135,6 +135,18 @@ configs/             → YAML config files
 
 ---
 
+## 🗾 Screenshot
+
+<div align="center">
+  <img src="web/static/assets/demo.png" alt="Demo">
+</div>
+
+---
+
+NOTE: User authentication is disabled by default, and the application ships with a default username and password. If you want to enable user authentication, please change the default credentials first.
+
+---
+
 ## 📝 License
 
 MIT
