@@ -1,8 +1,3 @@
-# ──────────────────────────────────────────────────
-# Homeland Dashboard — Multi-stage Dockerfile
-# ──────────────────────────────────────────────────
-
-# Stage 1: Build Tailwind CSS
 FROM node:20-alpine AS css-builder
 WORKDIR /build
 COPY package.json tailwind.config.js ./
@@ -11,7 +6,6 @@ COPY web/static/css/app.css web/static/css/
 COPY web/templates/ web/templates/
 RUN npx tailwindcss -i web/static/css/app.css -o web/static/css/tailwind.css --minify
 
-# Stage 2: Build Go binary
 FROM golang:1.25-alpine AS go-builder
 RUN apk add --no-cache git
 WORKDIR /build
@@ -20,7 +14,6 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o homeland ./cmd/homeland/
 
-# Stage 3: Minimal runtime image
 FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata curl wget
 RUN adduser -D -h /app homeland

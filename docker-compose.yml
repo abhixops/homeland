@@ -9,9 +9,9 @@ services:
       - "3000:3000"
 
     volumes:
-      # ✅ Mount entire config directory (fixes your issue)
+      # Mount entire config directory
       - ./configs:/app/configs:ro
-      # Docker socket — required for container count & auto-discovery
+      # Docker socket for container metrics
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Icons
       - ./homeland-icons:/app/web/static/icons
