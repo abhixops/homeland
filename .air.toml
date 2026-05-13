@@ -1,0 +1,13 @@
+# Air – live-reload for Go development
+# https://github.com/air-verse/air
+
+root = "."
+
+[build]
+  cmd   = "go build -o /tmp/homeland ./cmd/homeland/"
+  bin   = "/tmp/homeland"
+  include_ext  = ["go", "yaml", "html", "css"]
+  exclude_dir  = ["node_modules", "bin", "web/static/css"]
+
+[log]
+  color = true
