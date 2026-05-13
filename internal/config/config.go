@@ -2,6 +2,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -70,6 +71,25 @@ type Manager struct {
 	config   *Config
 	filePath string
 	onChange []func(*Config) // callbacks invoked after reload
+	watcher  *fsnotify.Watcher
+	stopOnce sync.Once
+}
+
+// Load reads and parses the YAML config file at path, returning the
+// parsed *Config or a wrapped error. This is the standalone entry point;
+// it does not require a Manager.
+func Load(path string) (*Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("config: read %s: %w", path, err)
+	}
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("config: parse %s: %w", path, err)
+	}
+	applyDefaults(&cfg)
+	markYAMLSource(&cfg)
+	return &cfg, nil
 }
 
 // NewManager loads the config from the given YAML file and returns a Manager.
@@ -95,17 +115,92 @@ func (m *Manager) OnChange(fn func(*Config)) {
 	m.onChange = append(m.onChange, fn)
 }
 
-// load reads and parses the YAML config file.
-func (m *Manager) load() error {
-	data, err := os.ReadFile(m.filePath)
+// Reload re-reads the config file from disk. If the file is valid the
+// stored config is updated; otherwise the old config is kept and the
+// error is returned.
+func (m *Manager) Reload() error {
+	cfg, err := Load(m.filePath)
 	if err != nil {
 		return err
 	}
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	m.mu.Lock()
+	m.config = cfg
+	m.mu.Unlock()
+	return nil
+}
+
+// Watch starts an fsnotify watcher on the config file. When the file is
+// written or re-created the config is reloaded and onChange is called
+// with the new *Config. If the new file is invalid the old config is
+// kept and onChange is not called. Only one watcher may be active at a
+// time; call StopWatch before calling Watch again.
+func (m *Manager) Watch(onChange func(*Config)) error {
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("config: create watcher: %w", err)
+	}
+	if err := w.Add(m.filePath); err != nil {
+		w.Close()
+		return fmt.Errorf("config: watch %s: %w", m.filePath, err)
+	}
+	m.watcher = w
+	m.stopOnce = sync.Once{} // reset for a fresh watcher
+
+	go func() {
+		for {
+			select {
+			case event, ok := <-w.Events:
+				if !ok {
+					return
+				}
+				if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
+					cfg, err := Load(m.filePath)
+					if err != nil {
+						log.Printf("[config] reload error: %v", err)
+						continue
+					}
+					m.mu.Lock()
+					m.config = cfg
+					m.mu.Unlock()
+					if onChange != nil {
+						onChange(cfg)
+					}
+				}
+			case err, ok := <-w.Errors:
+				if !ok {
+					return
+				}
+				log.Printf("[config] watcher error: %v", err)
+			}
+		}
+	}()
+	return nil
+}
+
+// StopWatch closes the fsnotify watcher, causing the Watch goroutine
+// to exit. It is safe to call multiple times.
+func (m *Manager) StopWatch() {
+	m.stopOnce.Do(func() {
+		if m.watcher != nil {
+			m.watcher.Close()
+		}
+	})
+}
+
+// load reads and parses the YAML config file (internal helper).
+func (m *Manager) load() error {
+	cfg, err := Load(m.filePath)
+	if err != nil {
 		return err
 	}
-	// Apply defaults
+	m.mu.Lock()
+	m.config = cfg
+	m.mu.Unlock()
+	return nil
+}
+
+// applyDefaults fills in zero-valued settings with sensible defaults.
+func applyDefaults(cfg *Config) {
 	if cfg.Settings.Port == 0 {
 		cfg.Settings.Port = 3000
 	}
@@ -121,16 +216,15 @@ func (m *Manager) load() error {
 	if cfg.Settings.HealthCheck.Timeout == 0 {
 		cfg.Settings.HealthCheck.Timeout = 5
 	}
-	// Mark all apps as YAML-sourced
+}
+
+// markYAMLSource sets Source="yaml" on every app.
+func markYAMLSource(cfg *Config) {
 	for i := range cfg.Groups {
 		for j := range cfg.Groups[i].Apps {
 			cfg.Groups[i].Apps[j].Source = "yaml"
 		}
 	}
-	m.mu.Lock()
-	m.config = &cfg
-	m.mu.Unlock()
-	return nil
 }
 
 // WatchFile starts a goroutine that watches the config file for changes
