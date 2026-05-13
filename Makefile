@@ -50,8 +50,10 @@ COMPOSE_FILE    := docker-compose.yml
 
 # Docker GID — required for the Docker socket volume in docker-compose.yml.
 # Auto-detected from the host; override with: make prod-up DOCKER_GID=1001
+# Uses GNU stat (-c) on Linux, BSD stat (-f) on macOS, with getent as first try.
 DOCKER_GID      ?= $(shell getent group docker 2>/dev/null | cut -d: -f3 || \
-                           stat -c '%g' /var/run/docker.sock 2>/dev/null || echo 999)
+                           stat -c '%g' /var/run/docker.sock 2>/dev/null || \
+                           stat -f '%g' /var/run/docker.sock 2>/dev/null || echo 999)
 
 # Hot-reload: 'air' (https://github.com/air-verse/air) is used for dev runs.
 AIR             := $(shell command -v air 2>/dev/null)
@@ -121,9 +123,8 @@ css-watch: ## Watch and rebuild Tailwind CSS on file changes
 
 dev: css-build ## ★ Start the app locally with hot-reload (uses 'air' if installed, else go run)
 ifdef AIR
-	@echo "→ Starting with air (hot-reload)..."
-	air -build.cmd "$(GO) build -o /tmp/$(APP_NAME) $(CMD_PATH)" \
-	    -build.bin "/tmp/$(APP_NAME)"
+	@echo "→ Starting with air (hot-reload, config: .air.toml)..."
+	air
 else
 	@echo "→ 'air' not found — starting with go run (no hot-reload)."
 	@echo "   Install air for hot-reload: go install github.com/air-verse/air@latest"
@@ -286,7 +287,9 @@ clean-css: ## Remove generated Tailwind CSS output
 
 clean-docker: ## Remove locally built Docker images for this project
 	@echo "→ Removing Docker images for $(IMAGE_NAME)..."
-	docker images --filter "reference=$(IMAGE_NAME)" -q | xargs -r docker rmi -f
+	@ids=$$(docker images --filter "reference=$(IMAGE_NAME)" -q); \
+	if [ -n "$$ids" ]; then echo "$$ids" | xargs docker rmi -f; \
+	else echo "   No images to remove."; fi
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  UTILITIES

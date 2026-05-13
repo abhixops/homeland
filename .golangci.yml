@@ -1,0 +1,27 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+
+linters-settings:
+  govet:
+    enable-all: true
+
+issues:
+  exclude-rules:
+    # Allow unchecked errors on deferred Close calls in tests (G104).
+    - path: _test\.go
+      linters:
+        - errcheck
+      text: "G104"
