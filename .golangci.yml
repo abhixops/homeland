@@ -18,7 +18,6 @@ linters:
     - unused
     - gosimple
     - ineffassign
-    - typecheck
     - shadow
     # Code formatting
     - gofmt
