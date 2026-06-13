@@ -1,29 +1,53 @@
 # golangci-lint configuration
 # https://golangci-lint.run/usage/configuration/
 
-version: 2
-
 run:
   timeout: 5m
 
 linters:
   enable:
+    # Error checking
     - errcheck
+    # Go vet
     - govet
+    # Static analysis
     - staticcheck
     - unused
     - gosimple
     - ineffassign
     - typecheck
+    # Code formatting
+    - gofmt
+    - goimports
+    # Style/quality
+    - revive
+    - misspell
+    - unconvert
+    - unparam
+    - noctx
 
 linters-settings:
   govet:
     enable-all: true
+    check-shadowing: true
+
+  revive:
+    # https://github.com/mgechev/revive/wiki/Default-Rules
+    rules:
+      - name: unexported-return
+        disabled: false
 
 issues:
   exclude-rules:
-    # Allow unchecked errors on deferred Close calls in tests (G104).
-    - path: _test\\.go
+    # Exclude unchecked errors in test files
+    - path: _test\.go$
       linters:
         - errcheck
-      text: "G104"
+        - unparam
+        - unused
+      text: "Error return value (is )?not checked"
+    
+    # Exclude missing error checks on close in tests
+    - path: _test\.go$
+      linters:
+        - noctx
