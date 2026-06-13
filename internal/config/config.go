@@ -14,16 +14,16 @@ import (
 
 // Config is the top-level configuration structure parsed from homepage.yaml.
 type Config struct {
-	Settings Settings `yaml:"settings"`
 	Groups   []Group  `yaml:"groups"`
+	Settings Settings `yaml:"settings"`
 }
 
 // Settings holds global application settings.
 type Settings struct {
 	Title       string    `yaml:"title"`
 	Theme       string    `yaml:"theme"`
-	HealthCheck HealthCfg `yaml:"health_check"`
 	Auth        AuthCfg   `yaml:"auth"`
+	HealthCheck HealthCfg `yaml:"health_check"`
 	Port        int       `yaml:"port"`
 }
 
@@ -69,10 +69,11 @@ type HealthCheck struct {
 type Manager struct {
 	config   *Config
 	watcher  *fsnotify.Watcher
-	onChange []func(*Config) // callbacks invoked after reload
+	filePath string
+	// onChange callbacks are invoked after reload.
+	onChange []func(*Config)
 	mu       sync.RWMutex
 	stopOnce sync.Once
-	filePath string
 }
 
 // Load reads and parses the YAML config file at path, returning the

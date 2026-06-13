@@ -24,11 +24,12 @@ const (
 
 // Result holds the health check result for a single app.
 type Result struct {
+	CheckedAt time.Time `json:"checked_at"`
 	AppName   string    `json:"app_name"`
 	Status    Status    `json:"status"`
 	Error     string    `json:"error,omitempty"`
-	CheckedAt time.Time `json:"checked_at"`
-	Latency   int64     `json:"latency_ms"` // response time in milliseconds
+	// Latency is the response time in milliseconds.
+	Latency int64 `json:"latency_ms"`
 }
 
 // Checker runs periodic health checks against configured endpoints.

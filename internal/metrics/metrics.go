@@ -53,9 +53,9 @@ type ContainerCounter interface {
 type Collector struct {
 	containerCounter ContainerCounter
 	stop             chan struct{}
-	mu               sync.RWMutex
 	metrics          SystemMetrics
 	interval         time.Duration
+	mu               sync.RWMutex
 }
 
 // NewCollector creates a metrics collector with the given refresh interval.

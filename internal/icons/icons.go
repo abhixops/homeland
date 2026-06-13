@@ -28,11 +28,13 @@ const (
 // Fetcher manages icon downloads and local caching.
 type Fetcher struct {
 	httpClient *http.Client
-	fetching   map[string]bool // tracks in-progress fetches to avoid duplicates
-	failed     map[string]int  // tracks failed fetches and attempt count for retry
-	mu         sync.Mutex
-	failedMu   sync.Mutex
-	cacheDir   string
+	// fetching tracks in-progress fetches to avoid duplicates.
+	fetching map[string]bool
+	// failed tracks failed fetches and attempt counts for retry.
+	failed   map[string]int
+	cacheDir string
+	mu       sync.Mutex
+	failedMu sync.Mutex
 }
 
 // NewFetcher creates a new icon fetcher that caches files in the given directory.
