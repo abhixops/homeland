@@ -132,8 +132,8 @@ func (m *Manager) Reload() error {
 // Watch starts an fsnotify watcher on the config file. When the file is
 // written or re-created the config is reloaded and onChange is called
 // with the new *Config. If the new file is invalid the old config is
-// kept and onChange is not called. Only one watcher may be active at a
-// time; call StopWatch before calling Watch again.
+// kept and onChange is not called. Includes a 500ms debounce to handle
+// spurious events from Docker bind-mounts or atomic saves.
 func (m *Manager) Watch(onChange func(*Config)) error {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -147,6 +147,7 @@ func (m *Manager) Watch(onChange func(*Config)) error {
 	m.stopOnce = sync.Once{} // reset for a fresh watcher
 
 	go func() {
+		var debounce *time.Timer
 		for {
 			select {
 			case event, ok := <-w.Events:
@@ -154,17 +155,24 @@ func (m *Manager) Watch(onChange func(*Config)) error {
 					return
 				}
 				if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					cfg, err := Load(m.filePath)
-					if err != nil {
-						log.Printf("[config] reload error: %v", err)
-						continue
+					// Debounce: reset timer on each event, only fire after 500ms of quiet
+					if debounce != nil {
+						debounce.Stop()
 					}
-					m.mu.Lock()
-					m.config = cfg
-					m.mu.Unlock()
-					if onChange != nil {
-						onChange(cfg)
-					}
+					debounce = time.AfterFunc(500*time.Millisecond, func() {
+						log.Printf("[config] detected change in %s, reloading...", m.filePath)
+						cfg, err := Load(m.filePath)
+						if err != nil {
+							log.Printf("[config] reload error: %v", err)
+							return
+						}
+						m.mu.Lock()
+						m.config = cfg
+						m.mu.Unlock()
+						if onChange != nil {
+							onChange(cfg)
+						}
+					})
 				}
 			case err, ok := <-w.Errors:
 				if !ok {
@@ -224,55 +232,5 @@ func markYAMLSource(cfg *Config) {
 		for j := range cfg.Groups[i].Apps {
 			cfg.Groups[i].Apps[j].Source = "yaml"
 		}
-	}
-}
-
-// WatchFile starts a goroutine that watches the config file for changes
-// and reloads automatically. This enables hot-reload without restarting.
-// Includes a 500ms debounce to handle spurious events from Docker bind-mounts.
-func (m *Manager) WatchFile() {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Printf("[config] failed to create watcher: %v", err)
-		return
-	}
-	go func() {
-		defer watcher.Close()
-		var debounce *time.Timer
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					// Debounce: reset timer on each event, only fire after 500ms of quiet
-					if debounce != nil {
-						debounce.Stop()
-					}
-					debounce = time.AfterFunc(500*time.Millisecond, func() {
-						log.Printf("[config] detected change in %s, reloading...", m.filePath)
-						if err := m.load(); err != nil {
-							log.Printf("[config] reload error: %v", err)
-						} else {
-							log.Println("[config] reloaded successfully")
-							m.mu.RLock()
-							for _, fn := range m.onChange {
-								fn(m.config)
-							}
-							m.mu.RUnlock()
-						}
-					})
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Printf("[config] watcher error: %v", err)
-			}
-		}
-	}()
-	if err := watcher.Add(m.filePath); err != nil {
-		log.Printf("[config] failed to watch %s: %v", m.filePath, err)
 	}
 }
