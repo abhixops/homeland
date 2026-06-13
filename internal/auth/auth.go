@@ -11,9 +11,9 @@ import (
 
 // Config holds the authentication configuration.
 type Config struct {
-	Enabled  bool
 	Username string
 	Password string
+	Enabled  bool
 }
 
 // Middleware returns a Fiber middleware that enforces HTTP Basic Auth

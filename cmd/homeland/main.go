@@ -47,9 +47,6 @@ func main() {
 	cfg := cfgMgr.Get()
 	log.Printf("[config] loaded %d groups from %s", len(cfg.Groups), configPath)
 
-	// Start watching for config changes (hot-reload)
-	cfgMgr.WatchFile()
-
 	// ── Initialize Subsystems ──
 
 	// Health checker — runs periodic HTTP/TCP checks in goroutines
@@ -59,10 +56,14 @@ func main() {
 	)
 	healthChecker.Start(cfg)
 
-	// Re-wire health checks when config changes
-	cfgMgr.OnChange(func(newCfg *config.Config) {
+	// Start watching for config changes (hot-reload).
+	// On change: re-wire health checks with the new config.
+	if err := cfgMgr.Watch(func(newCfg *config.Config) {
+		log.Println("[config] reloaded successfully")
 		healthChecker.Start(newCfg)
-	})
+	}); err != nil {
+		log.Printf("[config] warning: file watch unavailable: %v", err)
+	}
 
 	// Icon fetcher — downloads and caches icons from selfh.st CDN
 	iconFetcher := icons.NewFetcher(iconCacheDir)
@@ -90,13 +91,13 @@ func main() {
 
 	// ── Create Fiber App ──
 	app := fiber.New(fiber.Config{
-		AppName:               "Homeland",
-		DisableStartupMessage: false,
-		ReadTimeout:           10 * time.Second,
-		WriteTimeout:          10 * time.Second,
-		IdleTimeout:           30 * time.Second,
+		AppName:                 "Homeland",
+		DisableStartupMessage:   false,
+		ReadTimeout:             10 * time.Second,
+		WriteTimeout:            10 * time.Second,
+		IdleTimeout:             30 * time.Second,
 		EnableTrustedProxyCheck: false,
-		ProxyHeader:           fiber.HeaderXForwardedFor,
+		ProxyHeader:             fiber.HeaderXForwardedFor,
 	})
 
 	// Global middleware
@@ -135,7 +136,9 @@ func main() {
 		healthChecker.Stop()
 		dockerDiscovery.Stop()
 		metricsCollector.Stop()
-		app.Shutdown()
+		if err := app.Shutdown(); err != nil {
+			log.Printf("error during shutdown: %v", err)
+		}
 	}()
 
 	// ── Start Server ──

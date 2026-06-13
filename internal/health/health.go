@@ -24,20 +24,21 @@ const (
 
 // Result holds the health check result for a single app.
 type Result struct {
+	CheckedAt time.Time `json:"checked_at"`
 	AppName   string    `json:"app_name"`
 	Status    Status    `json:"status"`
-	Latency   int64     `json:"latency_ms"` // response time in milliseconds
-	CheckedAt time.Time `json:"checked_at"`
 	Error     string    `json:"error,omitempty"`
+	// Latency is the response time in milliseconds.
+	Latency int64 `json:"latency_ms"`
 }
 
 // Checker runs periodic health checks against configured endpoints.
 type Checker struct {
-	results    sync.Map
 	httpClient *http.Client
+	cancel     context.CancelFunc
+	results    sync.Map
 	interval   time.Duration
 	timeout    time.Duration
-	cancel     context.CancelFunc
 }
 
 // NewChecker creates a health checker with the given interval and timeout (in seconds).
