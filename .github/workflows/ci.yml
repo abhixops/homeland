@@ -29,7 +29,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.64 # Pin to a specific version known to support Go 1.25 or use a more recent commit/tag
+          version: v2.0.0
 
   # ── 2. Test ──────────────────────────────────────────────────────
   test:
