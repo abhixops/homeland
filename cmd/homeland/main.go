@@ -137,8 +137,8 @@ func main() {
 		dockerDiscovery.Stop()
 		metricsCollector.Stop()
 		if err := app.Shutdown(); err != nil {
-		log.Printf("error during shutdown: %v", err)
-	}
+			log.Printf("error during shutdown: %v", err)
+		}
 	}()
 
 	// ── Start Server ──

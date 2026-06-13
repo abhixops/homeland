@@ -21,10 +21,10 @@ type Config struct {
 // Settings holds global application settings.
 type Settings struct {
 	Title       string    `yaml:"title"`
-	Port        int       `yaml:"port"`
 	Theme       string    `yaml:"theme"`
 	HealthCheck HealthCfg `yaml:"health_check"`
 	Auth        AuthCfg   `yaml:"auth"`
+	Port        int       `yaml:"port"`
 }
 
 // HealthCfg holds default health check parameters.
@@ -67,11 +67,11 @@ type HealthCheck struct {
 // Manager provides thread-safe access to the loaded configuration
 // and supports hot-reloading the config file on changes.
 type Manager struct {
-	mu       sync.RWMutex
-	stopOnce sync.Once
 	config   *Config
 	watcher  *fsnotify.Watcher
 	onChange []func(*Config) // callbacks invoked after reload
+	mu       sync.RWMutex
+	stopOnce sync.Once
 	filePath string
 }
 

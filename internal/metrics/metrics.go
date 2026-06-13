@@ -40,7 +40,7 @@ type SystemMetrics struct {
 	NumCPUs            int       `json:"num_cpus"`
 	ContainerCount     int       `json:"container_count"`
 	UptimeAvailable    bool      `json:"uptime_available"`
-	ContainerAvailable bool      `json:"container_available\"`
+	ContainerAvailable bool      `json:"container_available"`
 }
 
 // ContainerCounter is an interface to get the running container count,

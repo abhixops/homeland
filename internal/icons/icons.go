@@ -28,10 +28,10 @@ const (
 // Fetcher manages icon downloads and local caching.
 type Fetcher struct {
 	httpClient *http.Client
-	mu         sync.Mutex
-	failedMu   sync.Mutex
 	fetching   map[string]bool // tracks in-progress fetches to avoid duplicates
 	failed     map[string]int  // tracks failed fetches and attempt count for retry
+	mu         sync.Mutex
+	failedMu   sync.Mutex
 	cacheDir   string
 }
 
@@ -190,8 +190,8 @@ func (f *Fetcher) ensureDefault() string {
 	defaultPath := filepath.Join(f.cacheDir, "default.svg")
 	if _, err := os.Stat(defaultPath); err != nil {
 		if err := os.WriteFile(defaultPath, []byte(defaultIconSVG), 0644); err != nil {
-		log.Printf("[icons] failed to write default icon: %v", err)
-	}
+			log.Printf("[icons] failed to write default icon: %v", err)
+		}
 	}
 	return "/static/icons/default.svg"
 }
