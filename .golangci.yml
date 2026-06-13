@@ -11,16 +11,17 @@ linters:
     - unused
     - gosimple
     - ineffassign
+    - typecheck
     - shadow
     - gofmt
     - goimports
 
-linters-settings:
+linters_settings:
   govet:
-    enable-all: true
+    enable_all: true
 
 issues:
-  exclude-rules:
+  exclude_rules:
     - path: _test\.go$
       linters:
         - errcheck
