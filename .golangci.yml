@@ -15,13 +15,14 @@ linters:
     - gofmt
     - goimports
 
-linters_settings:
+linters-settings:
   govet:
-    enable_all: true
+    enable-all: true
 
 issues:
-  exclude_rules:
-    - path: _test\.go$
-      linters:
+  exclusions:
+    # Exclude test files from errcheck
+    - linters:
         - errcheck
+      path: _test\.go$
       text: "Error return value"
