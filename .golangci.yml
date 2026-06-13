@@ -2,6 +2,7 @@
 # https://golangci-lint.run/usage/configuration/
 
 run:
+  version: 1
   timeout: 5m
 
 linters:
