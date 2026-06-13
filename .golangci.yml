@@ -1,8 +1,9 @@
 # golangci-lint configuration
 # https://golangci-lint.run/usage/configuration/
 
+version: 1
+
 run:
-  version: 1
   timeout: 5m
 
 linters:
@@ -22,7 +23,7 @@ linters-settings:
 issues:
   exclude-rules:
     # Allow unchecked errors on deferred Close calls in tests (G104).
-    - path: _test\.go
+    - path: _test\\.go
       linters:
         - errcheck
       text: "G104"
