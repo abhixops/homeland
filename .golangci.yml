@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 5m
 
@@ -9,14 +11,18 @@ linters:
     - unused
     - gosimple
     - ineffassign
-  settings:
-    govet:
-      enable-all: true
+    - typecheck
+    - shadow
+    - gofmt
+    - goimports
+
+linters-settings:
+  govet:
+    enable-all: true
 
 issues:
-  exclusions:
-    rules:
-      - linters:
-          - errcheck
-        text: "G104"
-        path: "_test\\.go"
+  exclude-rules:
+    - path: _test\.go$
+      linters:
+        - errcheck
+      text: "Error return value"
