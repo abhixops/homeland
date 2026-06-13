@@ -16,6 +16,7 @@ linters:
     - gosimple
     - ineffassign
     - typecheck
+    - shadow
     # Code formatting
     - gofmt
     - goimports
@@ -29,7 +30,6 @@ linters:
 linters-settings:
   govet:
     enable-all: true
-    check-shadowing: true
 
   revive:
     # https://github.com/mgechev/revive/wiki/Default-Rules
