@@ -30,17 +30,17 @@ func init() {
 
 // SystemMetrics holds the latest system resource usage snapshot.
 type SystemMetrics struct {
+	CollectedAt        time.Time `json:"collected_at"`
+	UptimeFormatted    string    `json:"uptime_formatted"`
 	CPUPercent         float64   `json:"cpu_percent"`
 	MemoryPercent      float64   `json:"memory_percent"`
 	MemoryUsedGB       float64   `json:"memory_used_gb"`
 	MemoryTotalGB      float64   `json:"memory_total_gb"`
 	UptimeSeconds      uint64    `json:"uptime_seconds"`
-	UptimeFormatted    string    `json:"uptime_formatted"`
-	UptimeAvailable    bool      `json:"uptime_available"`
 	NumCPUs            int       `json:"num_cpus"`
 	ContainerCount     int       `json:"container_count"`
-	ContainerAvailable bool      `json:"container_available"`
-	CollectedAt        time.Time `json:"collected_at"`
+	UptimeAvailable    bool      `json:"uptime_available"`
+	ContainerAvailable bool      `json:"container_available\"`
 }
 
 // ContainerCounter is an interface to get the running container count,
@@ -51,11 +51,11 @@ type ContainerCounter interface {
 
 // Collector periodically gathers system metrics.
 type Collector struct {
+	containerCounter ContainerCounter
+	stop             chan struct{}
 	mu               sync.RWMutex
 	metrics          SystemMetrics
 	interval         time.Duration
-	containerCounter ContainerCounter
-	stop             chan struct{}
 }
 
 // NewCollector creates a metrics collector with the given refresh interval.

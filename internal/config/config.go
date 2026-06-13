@@ -20,11 +20,11 @@ type Config struct {
 
 // Settings holds global application settings.
 type Settings struct {
-	Title       string      `yaml:"title"`
-	Port        int         `yaml:"port"`
-	Theme       string      `yaml:"theme"`
-	HealthCheck HealthCfg   `yaml:"health_check"`
-	Auth        AuthCfg     `yaml:"auth"`
+	Title       string    `yaml:"title"`
+	Port        int       `yaml:"port"`
+	Theme       string    `yaml:"theme"`
+	HealthCheck HealthCfg `yaml:"health_check"`
+	Auth        AuthCfg   `yaml:"auth"`
 }
 
 // HealthCfg holds default health check parameters.
@@ -35,9 +35,9 @@ type HealthCfg struct {
 
 // AuthCfg holds basic authentication settings.
 type AuthCfg struct {
-	Enabled  bool   `yaml:"enabled"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+	Enabled  bool   `yaml:"enabled"`
 }
 
 // Group represents a named group of applications.
@@ -68,11 +68,11 @@ type HealthCheck struct {
 // and supports hot-reloading the config file on changes.
 type Manager struct {
 	mu       sync.RWMutex
-	config   *Config
-	filePath string
-	onChange []func(*Config) // callbacks invoked after reload
-	watcher  *fsnotify.Watcher
 	stopOnce sync.Once
+	config   *Config
+	watcher  *fsnotify.Watcher
+	onChange []func(*Config) // callbacks invoked after reload
+	filePath string
 }
 
 // Load reads and parses the YAML config file at path, returning the

@@ -23,13 +23,13 @@ const (
 
 // Discovery manages Docker container discovery and merging with YAML config.
 type Discovery struct {
-	mu         sync.RWMutex
-	apps       []config.App
-	groups     map[string][]config.App // group name → apps
 	client     *client.Client
-	available  bool
-	refreshInt time.Duration
 	cancel     context.CancelFunc
+	groups     map[string][]config.App // group name → apps
+	apps       []config.App
+	mu         sync.RWMutex
+	refreshInt time.Duration
+	available  bool
 }
 
 // NewDiscovery creates a new Docker discovery instance.

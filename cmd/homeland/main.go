@@ -91,13 +91,13 @@ func main() {
 
 	// ── Create Fiber App ──
 	app := fiber.New(fiber.Config{
-		AppName:               "Homeland",
-		DisableStartupMessage: false,
-		ReadTimeout:           10 * time.Second,
-		WriteTimeout:          10 * time.Second,
-		IdleTimeout:           30 * time.Second,
+		AppName:                 "Homeland",
+		DisableStartupMessage:   false,
+		ReadTimeout:             10 * time.Second,
+		WriteTimeout:            10 * time.Second,
+		IdleTimeout:             30 * time.Second,
 		EnableTrustedProxyCheck: false,
-		ProxyHeader:           fiber.HeaderXForwardedFor,
+		ProxyHeader:             fiber.HeaderXForwardedFor,
 	})
 
 	// Global middleware
@@ -136,7 +136,9 @@ func main() {
 		healthChecker.Stop()
 		dockerDiscovery.Stop()
 		metricsCollector.Stop()
-		app.Shutdown()
+		if err := app.Shutdown(); err != nil {
+		log.Printf("error during shutdown: %v", err)
+	}
 	}()
 
 	// ── Start Server ──
