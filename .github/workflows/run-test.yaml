@@ -42,8 +42,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
-          args: --timeout=5m
+          version: v2.2.0
+          # args: --timeout=5m
 
 
   # 2. Test — build CSS, then run the full test suite
