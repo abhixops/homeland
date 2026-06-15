@@ -106,6 +106,7 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 	app.Get("/partial/calendar", h.handlePartialCalendar)
 	app.Get("/partial/metrics", h.handlePartialMetrics)
 	app.Get("/partial/search", h.handlePartialSearch)
+	app.Get("/partial/bookmarks", h.handlePartialBookmarks)
 
 	// REST API routes (JSON)
 	api := app.Group("/api")
@@ -134,18 +135,30 @@ func (h *Handler) handleIndex(c *fiber.Ctx) error {
 		}
 	}
 
+	// Build bookmark icon map
+	bookmarkIconMap := make(map[string]string)
+	for _, bg := range cfg.Bookmarks {
+		for _, bm := range bg.Bookmarks {
+			if bm.Icon != "" {
+				bookmarkIconMap[bm.Name] = h.IconFetcher.GetIconURL(bm.Icon)
+			}
+		}
+	}
+
 	now := time.Now()
 	data := fiber.Map{
-		"Title":       cfg.Settings.Title,
-		"Theme":       cfg.Settings.Theme,
-		"Groups":      groups,
-		"HealthMap":   healthMap,
-		"IconMap":     iconMap,
-		"Calendar":    h.buildCalendar(now),
-		"CurrentDate": now.Format("January 2, 2006"),
-		"MonthYear":   now.Format("January 2006"),
-		"Metrics":     h.MetricsCollect.Get(),
-		"Year":        now.Year(),
+		"Title":           cfg.Settings.Title,
+		"Theme":           cfg.Settings.Theme,
+		"Groups":          groups,
+		"HealthMap":       healthMap,
+		"IconMap":         iconMap,
+		"Calendar":        h.buildCalendar(now),
+		"CurrentDate":     now.Format("January 2, 2006"),
+		"MonthYear":       now.Format("January 2006"),
+		"Metrics":         h.MetricsCollect.Get(),
+		"Year":            now.Year(),
+		"Bookmarks":       cfg.Bookmarks,
+		"BookmarkIconMap": bookmarkIconMap,
 	}
 
 	c.Set("Content-Type", "text/html")
@@ -202,6 +215,24 @@ func (h *Handler) handlePartialMetrics(c *fiber.Ctx) error {
 	data := fiber.Map{"Metrics": h.MetricsCollect.Get()}
 	c.Set("Content-Type", "text/html")
 	return h.renderTemplate(c, "metrics.html", data)
+}
+
+func (h *Handler) handlePartialBookmarks(c *fiber.Ctx) error {
+	cfg := h.ConfigMgr.Get()
+	bookmarkIconMap := make(map[string]string)
+	for _, bg := range cfg.Bookmarks {
+		for _, bm := range bg.Bookmarks {
+			if bm.Icon != "" {
+				bookmarkIconMap[bm.Name] = h.IconFetcher.GetIconURL(bm.Icon)
+			}
+		}
+	}
+	data := fiber.Map{
+		"Bookmarks":       cfg.Bookmarks,
+		"BookmarkIconMap": bookmarkIconMap,
+	}
+	c.Set("Content-Type", "text/html")
+	return h.renderTemplate(c, "bookmarks.html", data)
 }
 
 func (h *Handler) handlePartialSearch(c *fiber.Ctx) error {
