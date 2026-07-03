@@ -47,6 +47,7 @@ type SystemMetrics struct {
 // allowing decoupling from the Docker package.
 type ContainerCounter interface {
 	ContainerCount() int
+	IsAvailable() bool
 }
 
 // Collector periodically gathers system metrics.
@@ -133,8 +134,8 @@ func (c *Collector) collect() {
 		m.UptimeAvailable = false
 	}
 
-	// Container count
-	if c.containerCounter != nil {
+	// Container count — only report as available if Docker is actually reachable.
+	if c.containerCounter != nil && c.containerCounter.IsAvailable() {
 		count := c.containerCounter.ContainerCount()
 		m.ContainerCount = count
 		m.ContainerAvailable = true

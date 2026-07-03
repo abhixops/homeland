@@ -33,7 +33,9 @@ type Discovery struct {
 }
 
 // NewDiscovery creates a new Docker discovery instance.
-// It gracefully handles the Docker socket being unavailable.
+// It attempts to connect to Docker immediately, but if the daemon is not yet
+// available (common after system restarts), it will retry automatically on
+// each discovery tick rather than permanently failing.
 func NewDiscovery(refreshInterval time.Duration) *Discovery {
 	d := &Discovery{
 		groups:     make(map[string][]config.App),
@@ -43,40 +45,71 @@ func NewDiscovery(refreshInterval time.Duration) *Discovery {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Printf("[docker] Docker client unavailable: %v", err)
+		// No client at all — cannot retry without a client handle.
 		d.available = false
 		return d
 	}
 
-	// Test connection
+	// Store the client regardless of Ping outcome so we can retry later.
+	d.client = cli
+
+	// Attempt initial connection (non-blocking on failure).
+	if !d.tryConnect() {
+		log.Println("[docker] Docker daemon not reachable at startup, will retry in background")
+	}
+
+	return d
+}
+
+// tryConnect attempts to ping the Docker daemon. Returns true on success.
+// Safe to call repeatedly; it is a no-op if already connected.
+func (d *Discovery) tryConnect() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.available {
+		return true
+	}
+	if d.client == nil {
+		return false
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if _, err := cli.Ping(ctx); err != nil {
+
+	if _, err := d.client.Ping(ctx); err != nil {
 		log.Printf("[docker] Docker daemon not reachable: %v", err)
-		d.available = false
-		return d
+		return false
 	}
 
-	d.client = cli
 	d.available = true
 	log.Println("[docker] connected to Docker daemon")
-	return d
+	return true
 }
 
 // IsAvailable returns true if Docker is reachable.
 func (d *Discovery) IsAvailable() bool {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	return d.available
 }
 
 // Start begins periodic container discovery in a background goroutine.
+// If Docker is not yet available, the ticker loop will retry the connection
+// on each cycle until it succeeds.
 func (d *Discovery) Start() {
-	if !d.available {
+	// If we don't even have a client handle, there's nothing to retry.
+	if d.client == nil {
 		return
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 
-	// Discover immediately
-	d.Discover()
+	// Discover immediately (if connected)
+	if d.IsAvailable() {
+		d.Discover()
+	}
 
 	go func() {
 		ticker := time.NewTicker(d.refreshInt)
@@ -86,7 +119,13 @@ func (d *Discovery) Start() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				d.Discover()
+				// If not yet connected, attempt reconnection before discovering.
+				if !d.IsAvailable() {
+					d.tryConnect()
+				}
+				if d.IsAvailable() {
+					d.Discover()
+				}
 			}
 		}
 	}()
@@ -101,7 +140,7 @@ func (d *Discovery) Stop() {
 
 // Discover queries Docker for running containers with homepage labels.
 func (d *Discovery) Discover() {
-	if !d.available {
+	if !d.IsAvailable() {
 		return
 	}
 
@@ -181,9 +220,14 @@ func (d *Discovery) GetGroups() map[string][]config.App {
 }
 
 // ContainerCount returns the number of running containers.
+// If Docker was previously unreachable, it attempts a reconnection first.
 func (d *Discovery) ContainerCount() int {
-	if !d.available {
-		return 0
+	if !d.IsAvailable() {
+		// Attempt lazy reconnection so metrics recover without waiting
+		// for the next discovery tick.
+		if !d.tryConnect() {
+			return 0
+		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
