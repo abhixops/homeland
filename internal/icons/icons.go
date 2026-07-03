@@ -13,8 +13,9 @@ import (
 	"time"
 )
 
-// The selfh.st icons CDN base URL (via jsDelivr).
-const cdnBaseURL = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/"
+// The selfh.st icons CDN base URLs (via jsDelivr).
+const svgCdnBaseURL = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/"
+const pngCdnBaseURL = "https://cdn.jsdelivr.net/gh/selfhst/icons/png/"
 
 // Default SVG icon used when the requested icon cannot be found.
 const defaultIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`
@@ -66,16 +67,19 @@ func (f *Fetcher) GetIconPath(iconName string) string {
 
 	// Normalize: strip extensions, lowercase
 	cleanName := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(iconName), ".svg"), ".png")
-	fileName := cleanName + ".svg"
-	cachedPath := filepath.Join(f.cacheDir, fileName)
 
-	// Check if already cached
-	if _, err := os.Stat(cachedPath); err == nil {
-		return "/static/icons/" + fileName
+	// Check if already cached (SVG or PNG)
+	svgPath := filepath.Join(f.cacheDir, cleanName+".svg")
+	pngPath := filepath.Join(f.cacheDir, cleanName+".png")
+	if _, err := os.Stat(svgPath); err == nil {
+		return "/static/icons/" + cleanName + ".svg"
+	}
+	if _, err := os.Stat(pngPath); err == nil {
+		return "/static/icons/" + cleanName + ".png"
 	}
 
-	// Trigger async fetch
-	go f.fetch(cleanName, cachedPath)
+	// Trigger async fetch (tries SVG first, then PNG)
+	go f.fetch(cleanName)
 	return "/static/icons/default.svg"
 }
 
@@ -87,20 +91,26 @@ func (f *Fetcher) FetchIconSync(iconName string) string {
 	}
 
 	cleanName := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(iconName), ".svg"), ".png")
-	fileName := cleanName + ".svg"
-	cachedPath := filepath.Join(f.cacheDir, fileName)
 
-	// Check if already cached
-	if _, err := os.Stat(cachedPath); err == nil {
-		return "/static/icons/" + fileName
+	// Check if already cached (SVG or PNG)
+	svgPath := filepath.Join(f.cacheDir, cleanName+".svg")
+	pngPath := filepath.Join(f.cacheDir, cleanName+".png")
+	if _, err := os.Stat(svgPath); err == nil {
+		return "/static/icons/" + cleanName + ".svg"
+	}
+	if _, err := os.Stat(pngPath); err == nil {
+		return "/static/icons/" + cleanName + ".png"
 	}
 
-	// Fetch synchronously (blocking)
-	f.fetch(cleanName, cachedPath)
+	// Fetch synchronously (blocking) — tries SVG first, then PNG
+	f.fetch(cleanName)
 
-	// Check if fetch succeeded
-	if _, err := os.Stat(cachedPath); err == nil {
-		return "/static/icons/" + fileName
+	// Check if fetch succeeded (SVG or PNG)
+	if _, err := os.Stat(svgPath); err == nil {
+		return "/static/icons/" + cleanName + ".svg"
+	}
+	if _, err := os.Stat(pngPath); err == nil {
+		return "/static/icons/" + cleanName + ".png"
 	}
 	return "/static/icons/default.svg"
 }
@@ -110,8 +120,9 @@ func (f *Fetcher) GetIconURL(iconName string) string {
 	return f.GetIconPath(iconName)
 }
 
-// fetch downloads an icon from the CDN with retry logic and saves it to the cache directory.
-func (f *Fetcher) fetch(name, destPath string) {
+// fetch downloads an icon from the CDN with retry logic. It tries SVG first,
+// and if SVG is not available (non-200), falls back to PNG format.
+func (f *Fetcher) fetch(name string) {
 	f.mu.Lock()
 	if f.fetching[name] {
 		f.mu.Unlock()
@@ -126,31 +137,49 @@ func (f *Fetcher) fetch(name, destPath string) {
 		f.mu.Unlock()
 	}()
 
-	url := cdnBaseURL + name + ".svg"
+	// Try SVG first, then PNG
+	formats := []struct {
+		baseURL string
+		ext     string
+	}{
+		{svgCdnBaseURL, ".svg"},
+		{pngCdnBaseURL, ".png"},
+	}
 
-	// Retry with exponential backoff
-	var lastErr error
-	for attempt := 1; attempt <= maxRetries; attempt++ {
-		if err := f.download(url, destPath); err != nil {
-			lastErr = err
-			if attempt < maxRetries {
-				wait := retryBaseWait * time.Duration(1<<(attempt-1))
-				log.Printf("[icons] fetch %s attempt %d/%d failed: %v — retrying in %v", name, attempt, maxRetries, err, wait)
-				time.Sleep(wait)
-				continue
+	for _, fmt := range formats {
+		url := fmt.baseURL + name + fmt.ext
+		destPath := filepath.Join(f.cacheDir, name+fmt.ext)
+
+		var lastErr error
+		success := false
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			if err := f.download(url, destPath); err != nil {
+				lastErr = err
+				if attempt < maxRetries {
+					wait := retryBaseWait * time.Duration(1<<(attempt-1))
+					log.Printf("[icons] fetch %s%s attempt %d/%d failed: %v — retrying in %v", name, fmt.ext, attempt, maxRetries, err, wait)
+					time.Sleep(wait)
+					continue
+				}
+			} else {
+				success = true
+				break
 			}
-		} else {
-			log.Printf("[icons] cached icon: %s", name)
-			// Clear from failed list on success
+		}
+
+		if success {
+			log.Printf("[icons] cached icon: %s%s", name, fmt.ext)
 			f.failedMu.Lock()
 			delete(f.failed, name)
 			f.failedMu.Unlock()
 			return
 		}
+
+		log.Printf("[icons] %s%s not available after %d attempts: %v, trying next format...", name, fmt.ext, maxRetries, lastErr)
 	}
 
-	// All retries exhausted — track for periodic re-fetch
-	log.Printf("[icons] failed to fetch %s after %d attempts: %v", name, maxRetries, lastErr)
+	// All formats exhausted — track for periodic re-fetch
+	log.Printf("[icons] failed to fetch %s in any format", name)
 	f.failedMu.Lock()
 	f.failed[name]++
 	f.failedMu.Unlock()
@@ -218,17 +247,20 @@ func (f *Fetcher) RetryFailed() {
 	log.Printf("[icons] retrying %d previously failed icons", len(toRetry))
 	for name := range toRetry {
 		cleanName := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(name), ".svg"), ".png")
-		fileName := cleanName + ".svg"
-		cachedPath := filepath.Join(f.cacheDir, fileName)
 
-		// Only retry if still not cached
-		if _, err := os.Stat(cachedPath); err != nil {
-			f.fetch(cleanName, cachedPath)
-		} else {
-			f.failedMu.Lock()
-			delete(f.failed, name)
-			f.failedMu.Unlock()
+		// Only retry if still not cached (check both SVG and PNG)
+		svgPath := filepath.Join(f.cacheDir, cleanName+".svg")
+		pngPath := filepath.Join(f.cacheDir, cleanName+".png")
+		if _, errSvg := os.Stat(svgPath); errSvg != nil {
+			if _, errPng := os.Stat(pngPath); errPng != nil {
+				f.fetch(cleanName)
+				continue
+			}
 		}
+		// Already cached in one format — clear from failed list
+		f.failedMu.Lock()
+		delete(f.failed, name)
+		f.failedMu.Unlock()
 	}
 }
 

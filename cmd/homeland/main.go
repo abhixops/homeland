@@ -69,11 +69,18 @@ func main() {
 	iconFetcher := icons.NewFetcher(iconCacheDir)
 	iconStop := make(chan struct{})
 
-	// Preload icons for all configured apps in parallel
+	// Preload icons for all configured apps and bookmarks in parallel
 	var iconNames []string
 	for _, g := range cfg.Groups {
 		for _, app := range g.Apps {
 			iconNames = append(iconNames, app.Icon)
+		}
+	}
+	for _, bg := range cfg.Bookmarks {
+		for _, bm := range bg.Bookmarks {
+			if bm.Icon != "" {
+				iconNames = append(iconNames, bm.Icon)
+			}
 		}
 	}
 	iconFetcher.PreloadIcons(iconNames)

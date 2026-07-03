@@ -116,8 +116,43 @@ groups:
 
       - name: VS Code Server
         url: http://localhost:8443
-        icon: code-server
+        icon: jellystat
         description: Cloud IDE
         healthcheck:
           type: http
           endpoint: /
+
+bookmarks:
+  - name: Developer
+    bookmarks:
+      - name: GitHub
+        url: https://github.com
+        icon: github
+        abbr: GH
+      - name: Stack Overflow
+        url: https://stackoverflow.com
+        icon: homepage
+        abbr: SO
+        description: Q&A for developers
+  - name: Social
+    bookmarks:
+      - name: Reddit
+        url: https://reddit.com
+        icon: reddit
+        description: The front page of the internet
+      - name: YouTube
+        url: https://youtube.com
+        icon: youtube
+        abbr: YT
+  - name: Tools
+    bookmarks:
+      - name: ChatGPT
+        url: https://chat.openai.com
+        icon: chatgpt
+        abbr: AI
+        description: AI assistant
+      - name: Hacker News
+        url: https://news.ycombinator.com
+        icon: hacker-news
+        abbr: HN
+        description: Tech news

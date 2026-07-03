@@ -105,6 +105,14 @@
         </div>
     </nav>
 
+    <!-- ── System Metrics Bar ── -->
+    <div class="sticky top-16 z-40 bg-white/70 dark:bg-surface-900/70 backdrop-blur-xl border-b border-surface-200 dark:border-surface-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2"
+             hx-get="/partial/metrics" hx-trigger="every 10s" hx-swap="morph:innerHTML" id="metrics-widget">
+            {{template "metrics.html" .}}
+        </div>
+    </div>
+
     <!-- ── Main Content ── -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -123,11 +131,13 @@
                     {{template "calendar.html" .}}
                 </div>
 
-                <!-- Metrics Widget -->
+                <!-- Bookmarks Widget -->
+                {{if .Bookmarks}}
                 <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-5 shadow-sm"
-                    hx-get="/partial/metrics" hx-trigger="every 10s" hx-swap="morph:innerHTML" id="metrics-widget">
-                    {{template "metrics.html" .}}
+                    hx-get="/partial/bookmarks" hx-trigger="every 60s" hx-swap="morph:innerHTML" id="bookmarks-widget">
+                    {{template "bookmarks.html" .}}
                 </div>
+                {{end}}
             </div>
         </div>
     </main>

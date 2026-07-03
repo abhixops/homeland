@@ -14,8 +14,24 @@ import (
 
 // Config is the top-level configuration structure parsed from homepage.yaml.
 type Config struct {
-	Groups   []Group  `yaml:"groups"`
-	Settings Settings `yaml:"settings"`
+	Groups    []Group         `yaml:"groups"`
+	Settings  Settings        `yaml:"settings"`
+	Bookmarks []BookmarkGroup `yaml:"bookmarks"`
+}
+
+// BookmarkGroup represents a named group of bookmark links.
+type BookmarkGroup struct {
+	Name      string     `yaml:"name"`
+	Bookmarks []Bookmark `yaml:"bookmarks"`
+}
+
+// Bookmark represents a single bookmark link entry.
+type Bookmark struct {
+	Name        string `yaml:"name"`
+	URL         string `yaml:"url"`
+	Icon        string `yaml:"icon"`
+	Description string `yaml:"description"`
+	Abbr        string `yaml:"abbr"` // 2-letter abbreviation fallback when no icon
 }
 
 // Settings holds global application settings.
