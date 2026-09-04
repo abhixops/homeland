@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   homeland:
+    build: .
     image: ghcr.io/abhixops/homeland:latest
     container_name: homeland
     restart: unless-stopped
@@ -18,10 +19,13 @@ services:
       # Host metrics
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+      # Compose projects exposed to the dashboard controls
+      - ${HOME}/sources:/sources
     environment:
       - TZ=UTC
       - HOST_PROC=/host/proc
       - HOST_SYS=/host/sys
+      - HOMELAND_SOURCES_DIR=/sources
 
     # Docker socket access: set DOCKER_GID to match your host's docker group GID.
     # Find it with:  getent group docker | cut -d: -f3

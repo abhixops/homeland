@@ -51,6 +51,54 @@ function clock() {
     };
 }
 
+// Docker Compose sidebar control. The server restricts operations to the
+// configured sources directory; this component only presents those projects.
+function composeControls() {
+    return {
+        projects: [],
+        project: '',
+        loading: true,
+        running: false,
+        failed: false,
+        message: '',
+        async loadProjects() {
+            this.loading = true;
+            this.message = '';
+            try {
+                const response = await fetch('/api/compose/projects');
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Unable to load projects');
+                this.projects = data.projects || [];
+            } catch (error) {
+                this.failed = true;
+                this.message = error.message;
+            } finally {
+                this.loading = false;
+            }
+        },
+        async run(action) {
+            this.running = true;
+            this.failed = false;
+            this.message = `${action === 'up' ? 'Starting' : 'Stopping'} ${this.project}…`;
+            try {
+                const response = await fetch('/api/compose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project: this.project, action })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Compose command failed');
+                this.message = `${this.project} ${action === 'up' ? 'started' : 'stopped'}.`;
+            } catch (error) {
+                this.failed = true;
+                this.message = error.message;
+            } finally {
+                this.running = false;
+            }
+        }
+    };
+}
+
 // ── Keyboard Shortcuts ──
 document.addEventListener('keydown', (e) => {
     // "/" to focus search bar

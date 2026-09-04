@@ -14,6 +14,7 @@ A lightweight, self-hosted homepage dashboard for homelab environments. Built wi
 - **Docker Auto-Discovery** — Automatically detects running containers via Docker labels
 - **System Metrics** — CPU, memory, uptime, and container count widgets
 - **Calendar Widget** — Minimal current month calendar with today highlighted
+- **Compose Controls** — Start or stop a selected Docker Compose project from the sidebar
 - **Instant Search** — Fuzzy search with `/` keyboard shortcut
 - **Dark Mode** — Beautiful dark theme with toggle and persistence
 - **Hot Reload** — Config changes apply without restart
@@ -32,6 +33,9 @@ git clone https://github.com/abhixops/homeland.git
 cd homeland
 docker compose up -d
 ```
+
+The included Compose file builds the local image, so dashboard features added in
+your checkout are included.
 
 Open [http://localhost:3000](http://localhost:3000)
 
@@ -112,6 +116,20 @@ services:
 | POST   | `/api/reload`         | Reload YAML config       |
 | GET    | `/api/docker/discover`| Trigger Docker discovery |
 | GET    | `/api/metrics`        | System metrics           |
+| GET    | `/api/compose/projects` | List Compose projects in the sources directory |
+| POST   | `/api/compose`        | Start or stop a selected Compose project |
+
+### Docker Compose Controls
+
+The sidebar lists immediate child folders of `~/sources` that contain a
+`compose.yaml`, `compose.yml`, `docker-compose.yaml`, or `docker-compose.yml`.
+Choose a project and use **Start** (`docker compose up -d`) or **Stop** (`docker
+compose down`). The dashboard container mounts `${HOME}/sources` at `/sources`
+and uses that path automatically. When running Homeland directly on the host,
+set `HOMELAND_SOURCES_DIR` to use a different directory.
+
+This feature can control Docker on the host. Keep Homeland on a trusted network
+and enable authentication before exposing it beyond your local environment.
 
 ---
 

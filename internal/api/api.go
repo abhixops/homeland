@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ type Handler struct {
 	DockerDiscover *dockerpkg.Discovery
 	MetricsCollect *metrics.Collector
 	Templates      *template.Template
+	Compose        *composeController
 }
 
 // calendarDay represents a single day in the calendar grid.
@@ -94,6 +96,7 @@ func NewHandler(
 		DockerDiscover: dd,
 		MetricsCollect: mc,
 		Templates:      tmpl,
+		Compose:        newComposeController(os.Getenv("HOMELAND_SOURCES_DIR")),
 	}
 }
 
@@ -116,6 +119,8 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 	api.Post("/reload", h.handleAPIReload)
 	api.Get("/docker/discover", h.handleAPIDockerDiscover)
 	api.Get("/metrics", h.handleAPIMetrics)
+	api.Get("/compose/projects", h.handleAPIComposeProjects)
+	api.Post("/compose", h.handleAPICompose)
 }
 
 // ──── Page Handlers ────
@@ -297,6 +302,29 @@ func (h *Handler) handleAPIDockerDiscover(c *fiber.Ctx) error {
 
 func (h *Handler) handleAPIMetrics(c *fiber.Ctx) error {
 	return c.JSON(h.MetricsCollect.Get())
+}
+
+func (h *Handler) handleAPIComposeProjects(c *fiber.Ctx) error {
+	projects, err := h.Compose.projects()
+	if err != nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"projects": projects})
+}
+
+func (h *Handler) handleAPICompose(c *fiber.Ctx) error {
+	var request struct {
+		Project string `json:"project"`
+		Action  string `json:"action"`
+	}
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+	output, err := h.Compose.run(c.Context(), request.Project, request.Action)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error(), "output": output})
+	}
+	return c.JSON(fiber.Map{"status": "ok", "project": request.Project, "action": request.Action, "output": output})
 }
 
 // ──── Helpers ────

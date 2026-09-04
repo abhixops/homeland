@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o homeland ./cmd/homeland/
 
 FROM alpine:3.19
-RUN apk add --no-cache ca-certificates tzdata curl wget
+RUN apk add --no-cache ca-certificates tzdata curl wget docker-cli-compose
 RUN adduser -D -h /app homeland
 WORKDIR /app
 

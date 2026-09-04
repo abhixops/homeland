@@ -64,3 +64,14 @@
   .animation-delay-200 { animation-delay: 200ms; }
   .animation-delay-300 { animation-delay: 300ms; }
 }
+
+/* Compose control colors also work when the prebuilt CSS bundle is used. */
+.compose-start { background: #059669; }
+.compose-start:hover { background: #047857; }
+.compose-stop { background: #e11d48; }
+.compose-stop:hover { background: #be123c; }
+.compose-start:disabled, .compose-stop:disabled { cursor: not-allowed; opacity: .5; }
+.compose-message { color: #059669; }
+.compose-message.is-error { color: #e11d48; }
+.dark .compose-message { color: #34d399; }
+.dark .compose-message.is-error { color: #fb7185; }
