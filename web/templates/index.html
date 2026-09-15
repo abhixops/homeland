@@ -22,7 +22,7 @@
 
     <!-- HTMX 2.0 for partial page updates -->
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
-    <!-- Idiomorph extension for intelligent DOM morphing (partial updates without full swap) -->
+    <!-- Idiomorph extension for intelligent DOM morphing -->
     <script src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js" defer></script>
 
     <!-- Alpine.js for reactive UI -->
@@ -30,61 +30,69 @@
 </head>
 
 <body
-    class="bg-surface-50 dark:bg-surface-950 text-surface-800 dark:text-surface-100 font-sans min-h-screen transition-colors duration-300"
+    class="glass-bg min-h-screen font-sans text-surface-800 dark:text-surface-100 transition-colors duration-500"
     hx-ext="morph">
 
+    <!-- ── Ambient Orbs (decorative) ── -->
+    <div aria-hidden="true" class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div class="absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full
+                    bg-indigo-400/20 dark:bg-indigo-600/15 blur-3xl animate-float"></div>
+        <div class="absolute top-1/3 -right-32 w-[420px] h-[420px] rounded-full
+                    bg-violet-400/15 dark:bg-violet-600/12 blur-3xl animate-float animation-delay-200"></div>
+        <div class="absolute -bottom-24 left-1/3 w-[380px] h-[380px] rounded-full
+                    bg-sky-400/15 dark:bg-sky-600/12 blur-3xl animate-float animation-delay-300"></div>
+    </div>
+
     <!-- ── Top Navigation Bar ── -->
-    <nav
-        class="sticky top-0 z-50 bg-white/80 dark:bg-surface-900/80 backdrop-blur-xl border-b border-surface-200 dark:border-surface-800">
+    <nav class="glass-nav sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
+
                 <!-- Logo / Title -->
                 <div class="flex items-center space-x-3">
-                    <div
-                        class="w-8 h-8 bg-gradient-to-br from-homeland-500 to-homeland-700 rounded-lg flex items-center justify-center">
-                        <img src="/static/assets/logo.png" alt="Homeland">
+                    <div class="w-8 h-8 rounded-xl glass-icon-wrap flex items-center justify-center shadow-sm">
+                        <img src="/static/assets/logo.png" alt="Homeland" class="w-5 h-5 object-contain">
                     </div>
-                    <h1
-                        class="text-xl font-bold bg-gradient-to-r from-homeland-600 to-homeland-400 bg-clip-text text-transparent">
-                        {{.Title}}
-                    </h1>
+                    <h1 class="text-xl font-bold gradient-text tracking-tight">{{.Title}}</h1>
                 </div>
 
                 <!-- Search Bar -->
                 <div class="flex-1 max-w-md mx-8 hidden sm:block" x-data="{ searchOpen: false }">
                     <div class="relative">
-                        <input type="text" id="search-input" name="q" placeholder="Search apps... ( / )"
-                            class="w-full bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-homeland-500/50 focus:border-homeland-500 transition-all"
+                        <input type="text" id="search-input" name="q" placeholder="Search apps… ( / )"
+                            class="glass-input w-full rounded-xl px-4 py-2 pl-10 text-sm
+                                   text-surface-700 dark:text-surface-200
+                                   placeholder-surface-400 dark:placeholder-surface-500"
                             hx-get="/partial/search" hx-trigger="keyup changed delay:200ms" hx-target="#search-results"
                             autocomplete="off">
-                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-surface-400" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
+                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-indigo-400 dark:text-indigo-400/70"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        <kbd
-                            class="absolute right-3 top-2 px-1.5 py-0.5 text-xs font-mono text-surface-400 bg-surface-200 dark:bg-surface-700 rounded">/</kbd>
+                        <kbd class="glass-kbd absolute right-3 top-2 px-1.5 py-0.5 text-xs font-mono rounded">/</kbd>
                     </div>
                     <div id="search-results" class="absolute mt-2 w-full max-w-md z-50"></div>
                 </div>
 
                 <!-- Right controls -->
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2">
                     <!-- Current time -->
-                    <div class="hidden md:block text-sm text-surface-500 dark:text-surface-400 font-mono"
+                    <div class="hidden md:flex items-center px-3 py-1.5 rounded-lg glass-btn
+                                text-sm font-mono text-indigo-600 dark:text-indigo-300"
                         x-data="clock()" x-text="time"></div>
 
                     <!-- Dark mode toggle -->
                     <button @click="$store.darkMode.toggle()"
-                        class="p-2 rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+                        class="glass-btn p-2 rounded-xl"
                         title="Toggle dark mode">
-                        <svg x-show="!$store.darkMode.on" class="w-5 h-5 text-surface-600" fill="none"
+                        <svg x-show="!$store.darkMode.on" class="w-5 h-5 text-indigo-500" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
-                        <svg x-show="$store.darkMode.on" class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
+                        <svg x-show="$store.darkMode.on" class="w-5 h-5 text-amber-400" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                         </svg>
@@ -92,9 +100,9 @@
 
                     <!-- Reload config -->
                     <button hx-post="/api/reload" hx-swap="none"
-                        class="p-2 rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+                        class="glass-btn p-2 rounded-xl"
                         title="Reload configuration">
-                        <svg class="w-5 h-5 text-surface-600 dark:text-surface-400" fill="none" viewBox="0 0 24 24"
+                        <svg class="w-5 h-5 text-indigo-500 dark:text-indigo-400" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -106,7 +114,7 @@
     </nav>
 
     <!-- ── System Metrics Bar ── -->
-    <div class="sticky top-16 z-40 bg-white/70 dark:bg-surface-900/70 backdrop-blur-xl border-b border-surface-200 dark:border-surface-800">
+    <div class="glass-nav sticky top-16 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2"
              hx-get="/partial/metrics" hx-trigger="every 10s" hx-swap="morph:innerHTML" id="metrics-widget">
             {{template "metrics.html" .}}
@@ -114,27 +122,30 @@
     </div>
 
     <!-- ── Main Content ── -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
             <!-- ── Left: App Grid (3/4 width) ── -->
-            <div class="lg:col-span-3 space-y-6" hx-get="/partial/grid" hx-trigger="every 30s" hx-swap="morph:innerHTML"
+            <div class="lg:col-span-3 space-y-6"
+                hx-get="/partial/grid" hx-trigger="every 30s" hx-swap="morph:innerHTML"
                 id="app-grid-container">
                 {{template "app_grid.html" .}}
             </div>
 
             <!-- ── Right: Sidebar Widgets (1/4 width) ── -->
-            <div class="space-y-6">
+            <div class="space-y-5">
                 <!-- Calendar Widget -->
-                <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-5 shadow-sm"
-                    hx-get="/partial/calendar" hx-trigger="every 60s" hx-swap="morph:innerHTML" id="calendar-widget">
+                <div class="glass-panel rounded-2xl p-5"
+                    hx-get="/partial/calendar" hx-trigger="every 60s" hx-swap="morph:innerHTML"
+                    id="calendar-widget">
                     {{template "calendar.html" .}}
                 </div>
 
                 <!-- Bookmarks Widget -->
                 {{if .Bookmarks}}
-                <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-5 shadow-sm"
-                    hx-get="/partial/bookmarks" hx-trigger="every 60s" hx-swap="morph:innerHTML" id="bookmarks-widget">
+                <div class="glass-panel rounded-2xl p-5"
+                    hx-get="/partial/bookmarks" hx-trigger="every 60s" hx-swap="morph:innerHTML"
+                    id="bookmarks-widget">
                     {{template "bookmarks.html" .}}
                 </div>
                 {{end}}
@@ -143,8 +154,10 @@
     </main>
 
     <!-- ── Footer ── -->
-    <footer class="mt-12 pb-6 text-center text-sm text-surface-400 dark:text-surface-600">
-        <p>Homeland Dashboard &copy; {{.Year}} &mdash; Lightweight &amp; Self-hosted</p>
+    <footer class="mt-12 pb-6 text-center">
+        <p class="text-xs text-surface-400/70 dark:text-surface-500/60 font-medium tracking-wide">
+            Homeland Dashboard &copy; {{.Year}} &mdash; Lightweight &amp; Self-hosted
+        </p>
     </footer>
 
     <!-- App JS -->
