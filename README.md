@@ -138,7 +138,7 @@ configs/             → YAML config files
 ## 🗾 Screenshot
 
 <div align="center">
-  <img src="web/static/assets/demo.png" alt="Demo">
+  <img src="web/static/assets/image.png" alt="Demo">
 </div>
 
 ---
