@@ -61,12 +61,10 @@ func NewFetcher(cacheDir string) *Fetcher {
 // it returns the cached path immediately. Otherwise, it triggers a background fetch
 // and returns the default icon path.
 func (f *Fetcher) GetIconPath(iconName string) string {
-	if iconName == "" {
+	cleanName, ok := cleanIconName(iconName)
+	if !ok {
 		return f.ensureDefault()
 	}
-
-	// Normalize: strip extensions, lowercase
-	cleanName := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(iconName), ".svg"), ".png")
 
 	// Check if already cached (SVG or PNG)
 	svgPath := filepath.Join(f.cacheDir, cleanName+".svg")
@@ -86,11 +84,10 @@ func (f *Fetcher) GetIconPath(iconName string) string {
 // FetchIconSync fetches an icon synchronously. Returns the URL path for the icon.
 // Used during startup preloading to ensure icons are ready before serving requests.
 func (f *Fetcher) FetchIconSync(iconName string) string {
-	if iconName == "" {
+	cleanName, ok := cleanIconName(iconName)
+	if !ok {
 		return f.ensureDefault()
 	}
-
-	cleanName := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(iconName), ".svg"), ".png")
 
 	// Check if already cached (SVG or PNG)
 	svgPath := filepath.Join(f.cacheDir, cleanName+".svg")
@@ -113,6 +110,18 @@ func (f *Fetcher) FetchIconSync(iconName string) string {
 		return "/static/icons/" + cleanName + ".png"
 	}
 	return "/static/icons/default.svg"
+}
+
+// cleanIconName lowercases an icon name and strips a .svg/.png extension.
+// It rejects empty names and anything that is not a plain file name
+// (path separators, "..", leading dots), so a crafted name from a config
+// file or Docker label can never read or write outside the cache directory.
+func cleanIconName(iconName string) (string, bool) {
+	name := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(strings.TrimSpace(iconName)), ".svg"), ".png")
+	if name == "" || strings.HasPrefix(name, ".") || strings.ContainsAny(name, "/\\:") || strings.Contains(name, "..") {
+		return "", false
+	}
+	return name, true
 }
 
 // GetIconURL returns the URL path suitable for HTML src attributes.
@@ -246,7 +255,13 @@ func (f *Fetcher) RetryFailed() {
 
 	log.Printf("[icons] retrying %d previously failed icons", len(toRetry))
 	for name := range toRetry {
-		cleanName := strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(name), ".svg"), ".png")
+		cleanName, ok := cleanIconName(name)
+		if !ok {
+			f.failedMu.Lock()
+			delete(f.failed, name)
+			f.failedMu.Unlock()
+			continue
+		}
 
 		// Only retry if still not cached (check both SVG and PNG)
 		svgPath := filepath.Join(f.cacheDir, cleanName+".svg")

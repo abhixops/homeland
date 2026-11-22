@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -15,8 +16,8 @@ import (
 // Config is the top-level configuration structure parsed from homepage.yaml.
 type Config struct {
 	Groups    []Group         `yaml:"groups"`
-	Settings  Settings        `yaml:"settings"`
 	Bookmarks []BookmarkGroup `yaml:"bookmarks"`
+	Settings  Settings        `yaml:"settings"`
 }
 
 // BookmarkGroup represents a named group of bookmark links.
@@ -38,15 +39,26 @@ type Bookmark struct {
 type Settings struct {
 	Title       string    `yaml:"title"`
 	Theme       string    `yaml:"theme"`
+	Notify      NotifyCfg `yaml:"notify"`
 	Auth        AuthCfg   `yaml:"auth"`
 	HealthCheck HealthCfg `yaml:"health_check"`
 	Port        int       `yaml:"port"`
+}
+
+// NotifyCfg holds optional webhook alerts for apps going down or recovering.
+type NotifyCfg struct {
+	// WebhookURL receives a POST on every up/down change. Empty disables alerts.
+	WebhookURL string `yaml:"webhook_url"`
+	// Format is "json" (default) or "ntfy" (plain-text body with ntfy headers).
+	Format string `yaml:"format"`
 }
 
 // HealthCfg holds default health check parameters.
 type HealthCfg struct {
 	Interval int `yaml:"interval"` // seconds
 	Timeout  int `yaml:"timeout"`  // seconds
+	// ShowHistory shows the uptime history bar under each app card.
+	ShowHistory bool `yaml:"show_history"`
 }
 
 // AuthCfg holds basic authentication settings.
@@ -133,8 +145,8 @@ func (m *Manager) OnChange(fn func(*Config)) {
 }
 
 // Reload re-reads the config file from disk. If the file is valid the
-// stored config is updated; otherwise the old config is kept and the
-// error is returned.
+// stored config is updated and OnChange callbacks run; otherwise the old
+// config is kept and the error is returned.
 func (m *Manager) Reload() error {
 	cfg, err := Load(m.filePath)
 	if err != nil {
@@ -142,13 +154,17 @@ func (m *Manager) Reload() error {
 	}
 	m.mu.Lock()
 	m.config = cfg
+	callbacks := slices.Clone(m.onChange)
 	m.mu.Unlock()
+	for _, fn := range callbacks {
+		fn(cfg)
+	}
 	return nil
 }
 
 // Watch starts an fsnotify watcher on the config file. When the file is
-// written or re-created the config is reloaded and onChange is called
-// with the new *Config. If the new file is invalid the old config is
+// written or re-created the config is reloaded and onChange (plus any
+// OnChange callbacks) is called with the new *Config. If the new file is invalid the old config is
 // kept and onChange is not called. Includes a 500ms debounce to handle
 // spurious events from Docker bind-mounts or atomic saves.
 func (m *Manager) Watch(onChange func(*Config)) error {
@@ -185,9 +201,13 @@ func (m *Manager) Watch(onChange func(*Config)) error {
 						}
 						m.mu.Lock()
 						m.config = cfg
+						callbacks := slices.Clone(m.onChange)
 						m.mu.Unlock()
 						if onChange != nil {
 							onChange(cfg)
+						}
+						for _, fn := range callbacks {
+							fn(cfg)
 						}
 					})
 				}

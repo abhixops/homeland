@@ -30,60 +30,48 @@
 </head>
 
 <body
-    class="bg-surface-50 dark:bg-surface-950 text-surface-800 dark:text-surface-100 font-sans min-h-screen transition-colors duration-300"
+    class="bg-surface-50 dark:bg-[#151b2b] text-surface-800 dark:text-surface-100 font-sans min-h-screen transition-colors duration-300"
     hx-ext="morph">
 
-    <!-- ── Top Navigation Bar ── -->
-    <nav
-        class="sticky top-0 z-50 bg-white/80 dark:bg-surface-900/80 backdrop-blur-xl border-b border-surface-200 dark:border-surface-800">
+    <!-- ── Header: navigation + live metrics ── -->
+    <header
+        class="sticky top-0 z-50 border-b border-surface-200/80 bg-white/75 backdrop-blur-xl dark:border-white/[0.09] dark:bg-[#151b2b]/75">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
+            <div class="flex items-center justify-between gap-4 h-14">
                 <!-- Logo / Title -->
-                <div class="flex items-center space-x-3">
-                    <div
-                        class="w-8 h-8 bg-gradient-to-br from-homeland-500 to-homeland-700 rounded-lg flex items-center justify-center">
-                        <img src="/static/assets/logo.png" alt="Homeland">
-                    </div>
-                    <h1
-                        class="text-xl font-bold bg-gradient-to-r from-homeland-600 to-homeland-400 bg-clip-text text-transparent">
-                        {{.Title}}
-                    </h1>
-                </div>
+                <a href="/" class="flex items-center gap-2.5 shrink-0">
+                    <img src="/static/assets/logo.png" alt="" class="w-7 h-7 rounded-lg ring-1 ring-black/5 dark:ring-white/10">
+                    <h1 class="text-[15px] font-semibold tracking-tight text-surface-900 dark:text-white">{{.Title}}</h1>
+                </a>
 
                 <!-- Search Bar -->
-                <div class="flex-1 max-w-md mx-8 hidden sm:block" x-data="{ searchOpen: false }">
-                    <div class="relative">
-                        <input type="text" id="search-input" name="q" placeholder="Search apps... ( / )"
-                            class="w-full bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-homeland-500/50 focus:border-homeland-500 transition-all"
-                            hx-get="/partial/search" hx-trigger="keyup changed delay:200ms" hx-target="#search-results"
-                            autocomplete="off">
-                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-surface-400" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <kbd
-                            class="absolute right-3 top-2 px-1.5 py-0.5 text-xs font-mono text-surface-400 bg-surface-200 dark:bg-surface-700 rounded">/</kbd>
-                    </div>
-                    <div id="search-results" class="absolute mt-2 w-full max-w-md z-50"></div>
+                <div class="relative flex-1 max-w-md hidden sm:block">
+                    <input type="text" id="search-input" name="q" placeholder="Search apps"
+                        class="w-full h-9 rounded-xl border border-surface-200 bg-surface-100/70 pl-9 pr-10 text-sm placeholder:text-surface-400 transition
+                               focus:outline-none focus:ring-2 focus:ring-homeland-500/40 focus:border-homeland-400 focus:bg-white
+                               dark:border-white/[0.09] dark:bg-white/[0.06] dark:placeholder:text-surface-400 dark:focus:bg-white/[0.09]"
+                        hx-get="/partial/search" hx-trigger="keyup changed delay:200ms" hx-target="#search-results"
+                        autocomplete="off">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <kbd
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-surface-200 px-1.5 text-[11px] font-medium text-surface-400 dark:border-white/10">/</kbd>
+                    <div id="search-results" class="absolute mt-2 w-full z-50"></div>
                 </div>
 
                 <!-- Right controls -->
-                <div class="flex items-center space-x-3">
-                    <!-- Current time -->
-                    <div class="hidden md:block text-sm text-surface-500 dark:text-surface-400 font-mono"
-                        x-data="clock()" x-text="time"></div>
-
+                <div class="flex items-center gap-1 shrink-0">
                     <!-- Dark mode toggle -->
-                    <button @click="$store.darkMode.toggle()"
-                        class="p-2 rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
-                        title="Toggle dark mode">
-                        <svg x-show="!$store.darkMode.on" class="w-5 h-5 text-surface-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <button type="button" @click="$store.darkMode.toggle()" class="icon-btn" title="Toggle dark mode"
+                        aria-label="Toggle dark mode">
+                        <svg x-show="!$store.darkMode.on" class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
-                        <svg x-show="$store.darkMode.on" class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24"
+                        <svg x-show="$store.darkMode.on" class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -91,11 +79,13 @@
                     </button>
 
                     <!-- Reload config -->
-                    <button hx-post="/api/reload" hx-swap="none"
-                        class="p-2 rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
-                        title="Reload configuration">
-                        <svg class="w-5 h-5 text-surface-600 dark:text-surface-400" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
+                    <button type="button" x-data="reloadButton()" @click="reload()" :disabled="busy"
+                        class="icon-btn disabled:cursor-wait"
+                        :class="{ 'ring-2 ring-rose-500': error }"
+                        :title="error ? 'Reload failed: ' + error : 'Reload configuration'"
+                        aria-label="Reload configuration">
+                        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                            :class="[busy ? 'animate-spin' : '', error ? 'text-rose-500' : '']">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
@@ -103,48 +93,56 @@
                 </div>
             </div>
         </div>
-    </nav>
 
-    <!-- ── System Metrics Bar ── -->
-    <div class="sticky top-16 z-40 bg-white/70 dark:bg-surface-900/70 backdrop-blur-xl border-b border-surface-200 dark:border-surface-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2"
-             hx-get="/partial/metrics" hx-trigger="every 10s" hx-swap="morph:innerHTML" id="metrics-widget">
-            {{template "metrics.html" .}}
+        <!-- Live system metrics -->
+        <div class="border-t border-surface-200/70 dark:border-white/[0.08]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2"
+                hx-get="/partial/metrics" hx-trigger="every 10s" hx-swap="morph:innerHTML" id="metrics-widget">
+                {{template "metrics.html" .}}
+            </div>
         </div>
-    </div>
+    </header>
 
     <!-- ── Main Content ── -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10">
+        <!-- Greeting -->
+        <section class="mb-8 flex flex-wrap items-end justify-between gap-4" x-data="clock()">
+            <div>
+                <p class="eyebrow" x-text="date">{{.CurrentDate}}</p>
+                <h2 class="mt-1.5 text-2xl sm:text-3xl font-semibold tracking-tight text-surface-900 dark:text-white"
+                    x-text="greeting">Welcome home</h2>
+            </div>
+            <p class="text-3xl sm:text-4xl font-light tracking-tight tabular-nums text-surface-400 dark:text-surface-500"
+                x-text="time"></p>
+        </section>
 
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <!-- ── Left: App Grid (3/4 width) ── -->
-            <div class="lg:col-span-3 space-y-6" hx-get="/partial/grid" hx-trigger="every 30s" hx-swap="morph:innerHTML"
+            <div class="lg:col-span-3" hx-get="/partial/grid" hx-trigger="every 30s" hx-swap="morph:innerHTML"
                 id="app-grid-container">
                 {{template "app_grid.html" .}}
             </div>
 
             <!-- ── Right: Sidebar Widgets (1/4 width) ── -->
-            <div class="space-y-6">
-                <!-- Calendar Widget -->
-                <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-5 shadow-sm"
-                    hx-get="/partial/calendar" hx-trigger="every 60s" hx-swap="morph:innerHTML" id="calendar-widget">
+            <aside class="space-y-5">
+                <div class="panel" hx-get="/partial/calendar" hx-trigger="every 60s" hx-swap="morph:innerHTML"
+                    id="calendar-widget">
                     {{template "calendar.html" .}}
                 </div>
 
-                <!-- Bookmarks Widget -->
                 {{if .Bookmarks}}
-                <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-5 shadow-sm"
-                    hx-get="/partial/bookmarks" hx-trigger="every 60s" hx-swap="morph:innerHTML" id="bookmarks-widget">
+                <div class="panel" hx-get="/partial/bookmarks" hx-trigger="every 60s" hx-swap="morph:innerHTML"
+                    id="bookmarks-widget">
                     {{template "bookmarks.html" .}}
                 </div>
                 {{end}}
-            </div>
+            </aside>
         </div>
     </main>
 
     <!-- ── Footer ── -->
-    <footer class="mt-12 pb-6 text-center text-sm text-surface-400 dark:text-surface-600">
-        <p>Homeland Dashboard &copy; {{.Year}} &mdash; Lightweight &amp; Self-hosted</p>
+    <footer class="pb-8 text-center text-xs text-surface-400 dark:text-surface-500">
+        <p>Homeland{{if .Version}} <span class="font-mono">{{.Version}}</span>{{end}} &middot; Self-hosted &middot; &copy; {{.Year}}</p>
     </footer>
 
     <!-- App JS -->

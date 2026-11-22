@@ -10,9 +10,10 @@ A lightweight, self-hosted homepage dashboard for homelab environments. Built wi
 ## ✨ Features
 
 - **App Grid** — Responsive grid with icons, grouped into collapsible sections
-- **Health Monitoring** — Real-time HTTP/TCP health checks with visual status dots
+- **Health Monitoring** — Real-time HTTP/TCP health checks with status dots, latency/error tooltips, and an optional uptime history bar (last 30 checks)
+- **Down Alerts** — Optional webhook when an app goes down or recovers (generic JSON or ntfy)
 - **Docker Auto-Discovery** — Automatically detects running containers via Docker labels
-- **System Metrics** — CPU, memory, uptime, and container count widgets
+- **System Metrics** — CPU, memory, disk, uptime, and container count widgets
 - **Calendar Widget** — Minimal current month calendar with today highlighted
 - **Instant Search** — Fuzzy search with `/` keyboard shortcut
 - **Dark Mode** — Beautiful dark theme with toggle and persistence
@@ -63,10 +64,14 @@ settings:
   health_check:
     interval: 30
     timeout: 5
+    show_history: false   # uptime history bar under each app card
   auth:
     enabled: false
     username: admin
     password: changeme
+  notify:
+    webhook_url: ""   # e.g. https://ntfy.sh/my-homelab — empty disables alerts
+    format: json      # json (Slack/Discord/Gotify-style) | ntfy
 
 groups:
   - name: Media
@@ -80,7 +85,16 @@ groups:
           endpoint: /health
 ```
 
-Changes are auto-detected and applied without restart.
+Changes are auto-detected and applied without restart (everything except `port`).
+
+**Alerts:** with `notify.webhook_url` set, Homeland sends one POST when an app
+goes from up to down and one when it recovers. The `json` format includes the
+summary under `text`, `content` and `message` plus structured fields
+(`app`, `status`, `previous`, `error`, `url`, `time`). The `ntfy` format sends
+plain text with ntfy's `Title`/`Tags`/`Priority` headers.
+
+**Disk widget:** shows usage of `/` by default. Set `HOMELAND_DISK_PATH` to
+watch a different mount (inside Docker, bind-mount the host path first).
 
 ---
 
@@ -112,6 +126,7 @@ services:
 | POST   | `/api/reload`         | Reload YAML config       |
 | GET    | `/api/docker/discover`| Trigger Docker discovery |
 | GET    | `/api/metrics`        | System metrics           |
+| GET    | `/api/version`        | Build version            |
 
 ---
 

@@ -27,6 +27,8 @@ type Handler struct {
 	DockerDiscover *dockerpkg.Discovery
 	MetricsCollect *metrics.Collector
 	Templates      *template.Template
+	// Version is shown in the footer and at /api/version.
+	Version string
 }
 
 // calendarDay represents a single day in the calendar grid.
@@ -65,6 +67,7 @@ func NewHandler(
 		"printf": func(format string, args ...interface{}) string {
 			return fmt.Sprintf(format, args...)
 		},
+		"healthTitle": healthTitle,
 		"roundFloat": func(f float64, places int) float64 {
 			pow := math.Pow(10, float64(places))
 			return math.Round(f*pow) / pow
@@ -116,6 +119,7 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 	api.Post("/reload", h.handleAPIReload)
 	api.Get("/docker/discover", h.handleAPIDockerDiscover)
 	api.Get("/metrics", h.handleAPIMetrics)
+	api.Get("/version", h.handleAPIVersion)
 }
 
 // ──── Page Handlers ────
@@ -123,33 +127,15 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 func (h *Handler) handleIndex(c *fiber.Ctx) error {
 	cfg := h.ConfigMgr.Get()
 	groups := h.getMergedGroups(cfg)
-
-	// Build health status map for all apps
-	healthMap := make(map[string]string)
-	iconMap := make(map[string]string)
-	for _, g := range groups {
-		for _, app := range g.Apps {
-			result := h.HealthChecker.GetStatus(app.Name)
-			healthMap[app.Name] = string(result.Status)
-			iconMap[app.Name] = h.IconFetcher.GetIconURL(app.Icon)
-		}
-	}
-
-	// Build bookmark icon map
-	bookmarkIconMap := make(map[string]string)
-	for _, bg := range cfg.Bookmarks {
-		for _, bm := range bg.Bookmarks {
-			if bm.Icon != "" {
-				bookmarkIconMap[bm.Name] = h.IconFetcher.GetIconURL(bm.Icon)
-			}
-		}
-	}
+	healthMap, iconMap := h.appMaps(groups)
 
 	now := time.Now()
 	data := fiber.Map{
 		"Title":           cfg.Settings.Title,
 		"Theme":           cfg.Settings.Theme,
 		"Groups":          groups,
+		"ShowHistory":     cfg.Settings.HealthCheck.ShowHistory,
+		"Summary":         summarize(healthMap),
 		"HealthMap":       healthMap,
 		"IconMap":         iconMap,
 		"Calendar":        h.buildCalendar(now),
@@ -157,48 +143,31 @@ func (h *Handler) handleIndex(c *fiber.Ctx) error {
 		"MonthYear":       now.Format("January 2006"),
 		"Metrics":         h.MetricsCollect.Get(),
 		"Year":            now.Year(),
+		"Version":         h.Version,
 		"Bookmarks":       cfg.Bookmarks,
-		"BookmarkIconMap": bookmarkIconMap,
+		"BookmarkIconMap": h.bookmarkIcons(cfg),
 	}
 
-	c.Set("Content-Type", "text/html")
 	return h.renderTemplate(c, "index.html", data)
 }
 
 func (h *Handler) handlePartialGrid(c *fiber.Ctx) error {
 	cfg := h.ConfigMgr.Get()
 	groups := h.getMergedGroups(cfg)
-
-	healthMap := make(map[string]string)
-	iconMap := make(map[string]string)
-	for _, g := range groups {
-		for _, app := range g.Apps {
-			result := h.HealthChecker.GetStatus(app.Name)
-			healthMap[app.Name] = string(result.Status)
-			iconMap[app.Name] = h.IconFetcher.GetIconURL(app.Icon)
-		}
+	healthMap, iconMap := h.appMaps(groups)
+	data := fiber.Map{
+		"Groups":      groups,
+		"HealthMap":   healthMap,
+		"IconMap":     iconMap,
+		"ShowHistory": cfg.Settings.HealthCheck.ShowHistory,
+		"Summary":     summarize(healthMap),
 	}
-
-	data := fiber.Map{"Groups": groups, "HealthMap": healthMap, "IconMap": iconMap}
-	c.Set("Content-Type", "text/html")
 	return h.renderTemplate(c, "app_grid.html", data)
 }
 
 func (h *Handler) handlePartialHealth(c *fiber.Ctx) error {
-	cfg := h.ConfigMgr.Get()
-	groups := h.getMergedGroups(cfg)
-
-	healthMap := make(map[string]string)
-	for _, g := range groups {
-		for _, app := range g.Apps {
-			result := h.HealthChecker.GetStatus(app.Name)
-			healthMap[app.Name] = string(result.Status)
-		}
-	}
-
-	data := fiber.Map{"HealthMap": healthMap}
-	c.Set("Content-Type", "text/html")
-	return h.renderTemplate(c, "health_dot.html", data)
+	healthMap, _ := h.appMaps(h.getMergedGroups(h.ConfigMgr.Get()))
+	return h.renderTemplate(c, "health_dot.html", fiber.Map{"HealthMap": healthMap})
 }
 
 func (h *Handler) handlePartialCalendar(c *fiber.Ctx) error {
@@ -207,56 +176,38 @@ func (h *Handler) handlePartialCalendar(c *fiber.Ctx) error {
 		"Calendar":  h.buildCalendar(now),
 		"MonthYear": now.Format("January 2006"),
 	}
-	c.Set("Content-Type", "text/html")
 	return h.renderTemplate(c, "calendar.html", data)
 }
 
 func (h *Handler) handlePartialMetrics(c *fiber.Ctx) error {
-	data := fiber.Map{"Metrics": h.MetricsCollect.Get()}
-	c.Set("Content-Type", "text/html")
-	return h.renderTemplate(c, "metrics.html", data)
+	return h.renderTemplate(c, "metrics.html", fiber.Map{"Metrics": h.MetricsCollect.Get()})
 }
 
 func (h *Handler) handlePartialBookmarks(c *fiber.Ctx) error {
 	cfg := h.ConfigMgr.Get()
-	bookmarkIconMap := make(map[string]string)
-	for _, bg := range cfg.Bookmarks {
-		for _, bm := range bg.Bookmarks {
-			if bm.Icon != "" {
-				bookmarkIconMap[bm.Name] = h.IconFetcher.GetIconURL(bm.Icon)
-			}
-		}
-	}
 	data := fiber.Map{
 		"Bookmarks":       cfg.Bookmarks,
-		"BookmarkIconMap": bookmarkIconMap,
+		"BookmarkIconMap": h.bookmarkIcons(cfg),
 	}
-	c.Set("Content-Type", "text/html")
 	return h.renderTemplate(c, "bookmarks.html", data)
 }
 
 func (h *Handler) handlePartialSearch(c *fiber.Ctx) error {
 	query := strings.ToLower(c.Query("q", ""))
-	cfg := h.ConfigMgr.Get()
-	groups := h.getMergedGroups(cfg)
+	groups := h.getMergedGroups(h.ConfigMgr.Get())
 
 	var results []config.App
-	iconMap := make(map[string]string)
-	healthMap := make(map[string]string)
-
 	if query != "" {
 		for _, g := range groups {
 			for _, app := range g.Apps {
 				if fuzzyMatch(strings.ToLower(app.Name), query) ||
 					fuzzyMatch(strings.ToLower(app.Description), query) {
 					results = append(results, app)
-					iconMap[app.Name] = h.IconFetcher.GetIconURL(app.Icon)
-					result := h.HealthChecker.GetStatus(app.Name)
-					healthMap[app.Name] = string(result.Status)
 				}
 			}
 		}
 	}
+	healthMap, iconMap := h.appMaps([]config.Group{{Apps: results}})
 
 	data := fiber.Map{
 		"Results":   results,
@@ -264,7 +215,6 @@ func (h *Handler) handlePartialSearch(c *fiber.Ctx) error {
 		"IconMap":   iconMap,
 		"HealthMap": healthMap,
 	}
-	c.Set("Content-Type", "text/html")
 	return h.renderTemplate(c, "search.html", data)
 }
 
@@ -283,13 +233,19 @@ func (h *Handler) handleAPIHealthApp(c *fiber.Ctx) error {
 	return c.JSON(h.HealthChecker.GetStatus(c.Params("app")))
 }
 
+// handleAPIReload re-reads the config file from disk. Change callbacks
+// registered on the config manager restart health checks and so on.
 func (h *Handler) handleAPIReload(c *fiber.Ctx) error {
-	cfg := h.ConfigMgr.Get()
-	h.HealthChecker.Start(cfg)
+	if err := h.ConfigMgr.Reload(); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "error": err.Error()})
+	}
 	return c.JSON(fiber.Map{"status": "reloaded"})
 }
 
 func (h *Handler) handleAPIDockerDiscover(c *fiber.Ctx) error {
+	if h.DockerDiscover == nil {
+		return c.JSON(fiber.Map{"discovered": []config.App{}, "count": 0})
+	}
 	h.DockerDiscover.Discover()
 	apps := h.DockerDiscover.GetApps()
 	return c.JSON(fiber.Map{"discovered": apps, "count": len(apps)})
@@ -297,6 +253,10 @@ func (h *Handler) handleAPIDockerDiscover(c *fiber.Ctx) error {
 
 func (h *Handler) handleAPIMetrics(c *fiber.Ctx) error {
 	return c.JSON(h.MetricsCollect.Get())
+}
+
+func (h *Handler) handleAPIVersion(c *fiber.Ctx) error {
+	return c.JSON(fiber.Map{"version": h.Version})
 }
 
 // ──── Helpers ────
@@ -307,6 +267,73 @@ func (h *Handler) getMergedGroups(cfg *config.Config) []config.Group {
 		return dockerpkg.MergeWithConfig(cfg.Groups, h.DockerDiscover.GetGroups())
 	}
 	return cfg.Groups
+}
+
+// appMaps returns the health result and icon URL for every app in groups,
+// keyed by app name.
+func (h *Handler) appMaps(groups []config.Group) (map[string]health.Result, map[string]string) {
+	healthMap := make(map[string]health.Result)
+	iconMap := make(map[string]string)
+	for _, g := range groups {
+		for _, app := range g.Apps {
+			healthMap[app.Name] = h.HealthChecker.GetStatus(app.Name)
+			iconMap[app.Name] = h.IconFetcher.GetIconURL(app.Icon)
+		}
+	}
+	return healthMap, iconMap
+}
+
+// healthSummary counts apps by status for the "X of Y online" line.
+type healthSummary struct {
+	Up, Down, Checked int
+}
+
+func summarize(healthMap map[string]health.Result) healthSummary {
+	var s healthSummary
+	for _, r := range healthMap {
+		switch r.Status {
+		case health.StatusUp:
+			s.Up++
+		case health.StatusDown:
+			s.Down++
+		}
+	}
+	s.Checked = s.Up + s.Down
+	return s
+}
+
+// bookmarkIcons returns the icon URL for each bookmark that names an icon.
+func (h *Handler) bookmarkIcons(cfg *config.Config) map[string]string {
+	icons := make(map[string]string)
+	for _, bg := range cfg.Bookmarks {
+		for _, bm := range bg.Bookmarks {
+			if bm.Icon != "" {
+				icons[bm.Name] = h.IconFetcher.GetIconURL(bm.Icon)
+			}
+		}
+	}
+	return icons
+}
+
+// healthTitle is the hover text for an app's status dot, e.g.
+// "Online · 42 ms · 97% of last 30 checks".
+func healthTitle(r health.Result) string {
+	var parts []string
+	switch r.Status {
+	case health.StatusUp:
+		parts = append(parts, "Online", fmt.Sprintf("%d ms", r.Latency))
+	case health.StatusDown:
+		parts = append(parts, "Offline")
+		if r.Error != "" {
+			parts = append(parts, r.Error)
+		}
+	default:
+		parts = append(parts, "Status unknown")
+	}
+	if pct := r.UptimePercent(); pct >= 0 {
+		parts = append(parts, fmt.Sprintf("%.0f%% up over last %d checks", pct, len(r.History)))
+	}
+	return strings.Join(parts, " · ")
 }
 
 // buildCalendar generates the calendar grid for the given month.
@@ -371,5 +398,6 @@ func (h *Handler) renderTemplate(c *fiber.Ctx, name string, data interface{}) er
 		c.Set("Content-Type", "text/html")
 		return c.Status(200).SendString("<!-- template render error, retrying next cycle -->")
 	}
+	c.Set("Content-Type", "text/html; charset=utf-8")
 	return c.Send(buf.Bytes())
 }

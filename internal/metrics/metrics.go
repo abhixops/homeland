@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -36,11 +37,15 @@ type SystemMetrics struct {
 	MemoryPercent      float64   `json:"memory_percent"`
 	MemoryUsedGB       float64   `json:"memory_used_gb"`
 	MemoryTotalGB      float64   `json:"memory_total_gb"`
+	DiskPercent        float64   `json:"disk_percent"`
+	DiskUsedGB         float64   `json:"disk_used_gb"`
+	DiskTotalGB        float64   `json:"disk_total_gb"`
 	UptimeSeconds      uint64    `json:"uptime_seconds"`
 	NumCPUs            int       `json:"num_cpus"`
 	ContainerCount     int       `json:"container_count"`
 	UptimeAvailable    bool      `json:"uptime_available"`
 	ContainerAvailable bool      `json:"container_available"`
+	DiskAvailable      bool      `json:"disk_available"`
 }
 
 // ContainerCounter is an interface to get the running container count,
@@ -54,9 +59,11 @@ type ContainerCounter interface {
 type Collector struct {
 	containerCounter ContainerCounter
 	stop             chan struct{}
+	diskPath         string
 	metrics          SystemMetrics
 	interval         time.Duration
 	mu               sync.RWMutex
+	stopOnce         sync.Once
 }
 
 // NewCollector creates a metrics collector with the given refresh interval.
@@ -65,7 +72,17 @@ func NewCollector(intervalSec int, cc ContainerCounter) *Collector {
 		interval:         time.Duration(intervalSec) * time.Second,
 		containerCounter: cc,
 		stop:             make(chan struct{}),
+		diskPath:         diskPath(),
 	}
+}
+
+// diskPath returns the filesystem shown in the disk widget.
+// Priority: HOMELAND_DISK_PATH env var → "/".
+func diskPath() string {
+	if p := os.Getenv("HOMELAND_DISK_PATH"); p != "" {
+		return p
+	}
+	return "/"
 }
 
 // Start begins periodic metrics collection in a background goroutine.
@@ -88,9 +105,9 @@ func (c *Collector) Start() {
 	log.Println("[metrics] started metrics collection")
 }
 
-// Stop cancels the metrics collection goroutine.
+// Stop cancels the metrics collection goroutine. Safe to call more than once.
 func (c *Collector) Stop() {
-	close(c.stop)
+	c.stopOnce.Do(func() { close(c.stop) })
 }
 
 // Get returns the latest metrics snapshot.
@@ -121,6 +138,16 @@ func (c *Collector) collect() {
 		m.MemoryTotalGB = float64(vmStat.Total) / (1024 * 1024 * 1024)
 	} else {
 		log.Printf("[metrics] memory collection error: %v", err)
+	}
+
+	// Disk usage for the configured path
+	if usage, err := disk.Usage(c.diskPath); err == nil {
+		m.DiskPercent = usage.UsedPercent
+		m.DiskUsedGB = float64(usage.Used) / (1024 * 1024 * 1024)
+		m.DiskTotalGB = float64(usage.Total) / (1024 * 1024 * 1024)
+		m.DiskAvailable = true
+	} else {
+		log.Printf("[metrics] disk collection error for %s: %v", c.diskPath, err)
 	}
 
 	// Host uptime — reads from HOST_PROC/proc/uptime if HOST_PROC is set

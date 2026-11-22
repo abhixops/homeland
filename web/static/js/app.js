@@ -31,22 +31,47 @@ document.addEventListener('alpine:init', () => {
     });
 });
 
-// Clock component showing current time
+// Clock component: current time, date, and a time-of-day greeting
 function clock() {
     return {
         time: '',
+        date: '',
+        greeting: '',
         init() {
             this.updateTime();
             setInterval(() => this.updateTime(), 1000);
         },
         updateTime() {
             const now = new Date();
-            this.time = now.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            });
+            this.time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            this.date = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+            const h = now.getHours();
+            this.greeting = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+        }
+    };
+}
+
+// Reload-config button: asks the server to re-read homepage.yaml, then
+// refreshes the page so every section (title, grid, bookmarks) shows the new
+// config. If the config is invalid, the button turns red and its tooltip
+// shows the error; the server keeps using the last valid config.
+function reloadButton() {
+    return {
+        busy: false,
+        error: '',
+        async reload() {
+            this.busy = true;
+            this.error = '';
+            try {
+                const response = await fetch('/api/reload', { method: 'POST' });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+                window.location.reload();
+            } catch (err) {
+                this.error = err.message;
+                this.busy = false;
+                console.warn('[homeland] config reload failed:', err);
+            }
         }
     };
 }
