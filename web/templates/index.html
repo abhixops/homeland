@@ -14,8 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/static/assets/favicon.ico">
     <!-- Tailwind CSS (compiled) -->
-    <link rel="stylesheet" href="/static/css/tailwind.css">
-    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v={{.AssetVersion}}">
 
     <!-- Server-side theme preference -->
     <meta name="theme" content="{{.Theme}}">
@@ -146,7 +145,7 @@
     </footer>
 
     <!-- App JS -->
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v={{.AssetVersion}}"></script>
 </body>
 
 </html>

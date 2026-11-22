@@ -149,6 +149,8 @@ func main() {
 	// ── Register Routes ──
 	handler := api.NewHandler(cfgMgr, healthChecker, iconFetcher, dockerDiscovery, metricsCollector, templateDir)
 	handler.Version = version
+	handler.AssetVersion = api.AssetVersion(staticDir)
+	log.Printf("[api] static asset version %s", handler.AssetVersion)
 	handler.RegisterRoutes(app)
 
 	// ── Graceful Shutdown ──
