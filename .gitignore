@@ -7,7 +7,7 @@
 *.dll
 *.so
 *.dylib
-homeland
+/homeland
 node_modules
 # Test binary, built with `go test -c`
 *.test
@@ -32,21 +32,21 @@ go.work.sum
 # .idea/
 # .vscode/
 
-+# Fiber compressed cache files
-+*.fiber.gz
-+
-+# Generated Tailwind CSS output (built from app.css)
-+web/static/css/tailwind.css
-+
-+# Icon cache (fetched from CDN at runtime)
-+web/static/icons/
-+!web/static/icons/.gitkeep
-+
-+# macOS
-+.DS_Store
-+
-+# Coverage HTML report
-+coverage.html
-+
-+# Build output directory
-+bin/
+# Fiber compressed cache files
+*.fiber.gz
+
+# Generated Tailwind CSS output (built from app.css)
+web/static/css/tailwind.css
+
+# Icon cache (fetched from CDN at runtime)
+web/static/icons/*
+!web/static/icons/.gitkeep
+
+# macOS
+.DS_Store
+
+# Coverage HTML report
+coverage.html
+
+# Build output directory
+bin/
