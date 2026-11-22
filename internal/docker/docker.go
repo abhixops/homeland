@@ -4,6 +4,9 @@ package docker
 import (
 	"context"
 	"log"
+	"slices"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,11 +28,21 @@ const (
 type Discovery struct {
 	client     *client.Client
 	cancel     context.CancelFunc
+	onChange   func()
 	groups     map[string][]config.App // group name → apps
+	signature  string                  // fingerprint of the last discovered set
 	apps       []config.App
 	mu         sync.RWMutex
 	refreshInt time.Duration
 	available  bool
+}
+
+// OnChange registers a callback fired after a discovery run finds a
+// different set of apps than the previous run.
+func (d *Discovery) OnChange(fn func()) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.onChange = fn
 }
 
 // NewDiscovery creates a new Docker discovery instance.
@@ -189,12 +202,35 @@ func (d *Discovery) Discover() {
 		apps = append(apps, app)
 	}
 
+	sig := signature(groups)
+
 	d.mu.Lock()
+	changed := sig != d.signature
 	d.apps = apps
 	d.groups = groups
+	d.signature = sig
+	onChange := d.onChange
 	d.mu.Unlock()
 
-	log.Printf("[docker] discovered %d apps in %d groups", len(apps), len(groups))
+	if changed {
+		log.Printf("[docker] discovered %d apps in %d groups", len(apps), len(groups))
+		if onChange != nil {
+			onChange()
+		}
+	}
+}
+
+// signature returns a stable fingerprint of the discovered apps, used to
+// detect when the set changes between runs.
+func signature(groups map[string][]config.App) string {
+	var parts []string
+	for group, apps := range groups {
+		for _, a := range apps {
+			parts = append(parts, strings.Join([]string{group, a.Name, a.URL, a.Icon, a.Description}, "\x00"))
+		}
+	}
+	slices.Sort(parts)
+	return strings.Join(parts, "\n")
 }
 
 // GetApps returns all discovered Docker apps.
@@ -259,8 +295,15 @@ func MergeWithConfig(yamlGroups []config.Group, dockerGroups map[string][]config
 		groupIndex[g.Name] = i
 	}
 
-	// Merge Docker apps into existing or new groups
-	for groupName, apps := range dockerGroups {
+	// Merge Docker apps into existing or new groups. Map iteration order is
+	// random, so walk group names in sorted order to keep the grid stable.
+	names := make([]string, 0, len(dockerGroups))
+	for name := range dockerGroups {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, groupName := range names {
+		apps := dockerGroups[groupName]
 		var newApps []config.App
 		for _, app := range apps {
 			if !yamlApps[app.Name] {

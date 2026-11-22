@@ -2,17 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Custom Base Styles ── */
+/* ── Base ── */
 @layer base {
   html {
     @apply scroll-smooth;
   }
-  
+
   body {
     @apply antialiased;
+    font-feature-settings: "cv11", "ss01";
   }
 
-  /* Custom scrollbar for dark mode */
+  /* Soft accent glow behind the top of the page */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 520px;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(60% 100% at 50% 0%, theme('colors.homeland.500 / 10%'), transparent 70%);
+  }
+  .dark body::before {
+    background: radial-gradient(60% 100% at 50% 0%, theme('colors.homeland.500 / 14%'), transparent 70%);
+  }
+
   ::-webkit-scrollbar {
     @apply w-2;
   }
@@ -27,40 +41,59 @@
   }
 }
 
-/* ── Custom Component Styles ── */
+/* ── Components ── */
 @layer components {
-  /* Glass morphism card effect */
-  .glass-card {
-    @apply bg-white/70 dark:bg-surface-900/70 backdrop-blur-xl border border-surface-200/50 dark:border-surface-800/50;
+  /* Sidebar / content panel */
+  .panel {
+    @apply rounded-2xl border border-surface-200/80 bg-white/80 p-5 shadow-sm shadow-surface-900/[0.03] backdrop-blur
+           dark:border-white/[0.09] dark:bg-white/[0.045] dark:shadow-none;
   }
 
-  /* Gradient text utility */
-  .gradient-text {
-    @apply bg-gradient-to-r from-homeland-600 to-homeland-400 bg-clip-text text-transparent;
-  }
-  
-  /* Status dot animations */
-  .status-pulse-green {
-    @apply relative;
-  }
-  .status-pulse-green::before {
-    content: '';
-    @apply absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75;
-  }
-  .status-pulse-red::before {
-    content: '';
-    @apply absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75;
+  .panel-title {
+    @apply flex items-center gap-2 text-[13px] font-semibold text-surface-700 dark:text-surface-200;
   }
 
-  /* App card hover glow */
-  .app-card-glow:hover {
-    box-shadow: 0 0 20px -5px theme('colors.homeland.500 / 15%');
+  /* Small uppercase section label */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-surface-400;
   }
-}
 
-/* ── Utility Animations ── */
-@layer utilities {
-  .animation-delay-100 { animation-delay: 100ms; }
-  .animation-delay-200 { animation-delay: 200ms; }
-  .animation-delay-300 { animation-delay: 300ms; }
+  /* Square icon button in the header */
+  .icon-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl text-surface-500 transition-colors
+           hover:bg-surface-100 hover:text-surface-800
+           dark:text-surface-400 dark:hover:bg-white/[0.08] dark:hover:text-surface-100;
+  }
+
+  /* App tile */
+  .tile {
+    @apply relative flex flex-col rounded-xl border border-surface-200/80 bg-white/70 p-3.5 transition-all duration-200
+           hover:-translate-y-0.5 hover:border-homeland-300 hover:bg-white hover:shadow-lg hover:shadow-homeland-500/[0.06]
+           dark:border-white/[0.09] dark:bg-white/[0.045]
+           dark:hover:border-homeland-500/40 dark:hover:bg-white/[0.07] dark:hover:shadow-black/20;
+  }
+
+  .tile-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-100 p-2 transition-transform duration-200
+           group-hover:scale-105 dark:bg-white/[0.08];
+  }
+
+  /* Status dot with a soft halo */
+  .status-dot {
+    @apply inline-block h-2 w-2 shrink-0 rounded-full;
+  }
+  .status-up {
+    @apply bg-emerald-500 ring-4 ring-emerald-500/15;
+  }
+  .status-down {
+    @apply bg-rose-500 ring-4 ring-rose-500/15;
+  }
+  .status-unknown {
+    @apply bg-surface-300 ring-4 ring-surface-300/20 dark:bg-surface-600 dark:ring-surface-600/20;
+  }
+
+  /* Thin usage bar in the metrics strip */
+  .meter {
+    @apply h-1 w-14 overflow-hidden rounded-full bg-surface-200 dark:bg-white/[0.08] sm:w-16;
+  }
 }

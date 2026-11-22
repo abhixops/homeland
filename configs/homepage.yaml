@@ -8,6 +8,7 @@ settings:
   health_check:
     interval: 30  # seconds
     timeout: 5    # seconds
+    show_history: false  # true = uptime history bar under each app card
   auth:
     enabled: false
     username: admin
@@ -18,7 +19,7 @@ groups:
     icon: play-circle
     apps:
       - name: Jellyfin
-        url: https://jellyfin.infinitygate.fun
+        url: https://jellyfin.infinitygate.cc
         icon: jellyfin
         description: Media server
         healthcheck:

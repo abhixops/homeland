@@ -20,16 +20,24 @@ import (
 	"github.com/abhixops/homeland/internal/health"
 	"github.com/abhixops/homeland/internal/icons"
 	"github.com/abhixops/homeland/internal/metrics"
+	"github.com/abhixops/homeland/internal/notify"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
+// Build metadata, set at build time with -ldflags "-X main.version=..." (see Makefile).
+var (
+	version   = "dev"
+	commit    = "unknown"
+	buildDate = "unknown"
+)
+
 func main() {
 	start := time.Now()
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	log.Println("🏠 Homeland Dashboard starting...")
+	log.Printf("🏠 Homeland Dashboard %s (commit %s, built %s) starting...", version, commit, buildDate)
 
 	// ── Determine paths ──
 	// Look for config relative to the binary or in configs/ directory
@@ -48,22 +56,6 @@ func main() {
 	log.Printf("[config] loaded %d groups from %s", len(cfg.Groups), configPath)
 
 	// ── Initialize Subsystems ──
-
-	// Health checker — runs periodic HTTP/TCP checks in goroutines
-	healthChecker := health.NewChecker(
-		cfg.Settings.HealthCheck.Interval,
-		cfg.Settings.HealthCheck.Timeout,
-	)
-	healthChecker.Start(cfg)
-
-	// Start watching for config changes (hot-reload).
-	// On change: re-wire health checks with the new config.
-	if err := cfgMgr.Watch(func(newCfg *config.Config) {
-		log.Println("[config] reloaded successfully")
-		healthChecker.Start(newCfg)
-	}); err != nil {
-		log.Printf("[config] warning: file watch unavailable: %v", err)
-	}
 
 	// Icon fetcher — downloads and caches icons from selfh.st CDN
 	iconFetcher := icons.NewFetcher(iconCacheDir)
@@ -90,7 +82,32 @@ func main() {
 
 	// Docker discovery — reads container labels for auto-discovery
 	dockerDiscovery := docker.NewDiscovery(60 * time.Second)
+
+	// Health checker — runs periodic HTTP/TCP checks in goroutines for both
+	// YAML apps and Docker-discovered apps.
+	healthChecker := health.NewChecker(
+		cfg.Settings.HealthCheck.Interval,
+		cfg.Settings.HealthCheck.Timeout,
+	)
+	notifier := notify.New(func() config.NotifyCfg { return cfgMgr.Get().Settings.Notify })
+	healthChecker.OnTransition(notifier.HandleTransition)
+	restartHealthChecks := func() {
+		healthChecker.Start(checkTargets(cfgMgr.Get(), dockerDiscovery))
+	}
+	dockerDiscovery.OnChange(restartHealthChecks)
+
+	// Re-apply settings whenever the config changes (file watch or /api/reload).
+	cfgMgr.OnChange(func(newCfg *config.Config) {
+		log.Println("[config] reloaded successfully")
+		healthChecker.Configure(newCfg.Settings.HealthCheck.Interval, newCfg.Settings.HealthCheck.Timeout)
+		restartHealthChecks()
+	})
+	if err := cfgMgr.Watch(nil); err != nil {
+		log.Printf("[config] warning: file watch unavailable: %v", err)
+	}
+
 	dockerDiscovery.Start()
+	restartHealthChecks()
 
 	// System metrics collector — CPU, memory, uptime, container count
 	metricsCollector := metrics.NewCollector(10, dockerDiscovery)
@@ -115,13 +132,13 @@ func main() {
 		TimeFormat: "15:04:05",
 	}))
 
-	// Optional basic auth
-	authCfg := &auth.Config{
-		Enabled:  cfg.Settings.Auth.Enabled,
-		Username: cfg.Settings.Auth.Username,
-		Password: cfg.Settings.Auth.Password,
-	}
-	app.Use(auth.Middleware(authCfg))
+	// Optional basic auth — read from the live config so changes apply on reload
+	app.Use(auth.Middleware(func() auth.Config {
+		a := cfgMgr.Get().Settings.Auth
+		return auth.Config{Enabled: a.Enabled, Username: a.Username, Password: a.Password}
+	}))
+	// Block cross-site POSTs (e.g. another website triggering /api/reload)
+	app.Use(auth.SameOrigin())
 
 	// Serve static files (CSS, JS, icons)
 	app.Static("/static", staticDir, fiber.Static{
@@ -131,6 +148,7 @@ func main() {
 
 	// ── Register Routes ──
 	handler := api.NewHandler(cfgMgr, healthChecker, iconFetcher, dockerDiscovery, metricsCollector, templateDir)
+	handler.Version = version
 	handler.RegisterRoutes(app)
 
 	// ── Graceful Shutdown ──
@@ -155,6 +173,20 @@ func main() {
 	if err := app.Listen(addr); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
+}
+
+// checkTargets returns every app that should be health-checked: YAML apps
+// plus Docker-discovered apps, with YAML winning on duplicate names.
+func checkTargets(cfg *config.Config, dd *docker.Discovery) []config.App {
+	groups := cfg.Groups
+	if dd.IsAvailable() {
+		groups = docker.MergeWithConfig(cfg.Groups, dd.GetGroups())
+	}
+	var apps []config.App
+	for _, g := range groups {
+		apps = append(apps, g.Apps...)
+	}
+	return apps
 }
 
 // getConfigPath resolves the config file path.
