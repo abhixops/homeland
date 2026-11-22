@@ -51,6 +51,7 @@ func newTestAppWithHandler(t *testing.T) (*fiber.App, string, *Handler) {
 	h := NewHandler(mgr, health.NewChecker(30, 1), icons.NewFetcher(t.TempDir()), nil,
 		metrics.NewCollector(10, nil), filepath.Join("..", "..", "web", "templates"))
 	h.Version = "v1.2.3"
+	h.AssetVersion = "abc123def456"
 	app := fiber.New()
 	h.RegisterRoutes(app)
 	return app, cfgPath, h
@@ -72,7 +73,8 @@ func TestIndexRenders(t *testing.T) {
 	if status != 200 {
 		t.Fatalf("status = %d", status)
 	}
-	for _, want := range []string{"Test Lab", "Jellyfin", "v1.2.3", "Status unknown", "Disk"} {
+	for _, want := range []string{"Test Lab", "Jellyfin", "v1.2.3", "Status unknown", "Disk",
+		"/static/css/tailwind.css?v=abc123def456", "/static/js/app.js?v=abc123def456"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("index page missing %q", want)
 		}

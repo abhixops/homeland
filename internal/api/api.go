@@ -29,6 +29,8 @@ type Handler struct {
 	Templates      *template.Template
 	// Version is shown in the footer and at /api/version.
 	Version string
+	// AssetVersion is appended to CSS/JS URLs to bust stale caches.
+	AssetVersion string
 }
 
 // calendarDay represents a single day in the calendar grid.
@@ -144,10 +146,13 @@ func (h *Handler) handleIndex(c *fiber.Ctx) error {
 		"Metrics":         h.MetricsCollect.Get(),
 		"Year":            now.Year(),
 		"Version":         h.Version,
+		"AssetVersion":    h.AssetVersion,
 		"Bookmarks":       cfg.Bookmarks,
 		"BookmarkIconMap": h.bookmarkIcons(cfg),
 	}
 
+	// Always revalidate the page so it picks up new asset URLs after an upgrade.
+	c.Set(fiber.HeaderCacheControl, "no-cache")
 	return h.renderTemplate(c, "index.html", data)
 }
 
