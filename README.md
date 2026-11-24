@@ -2,7 +2,7 @@
 
 A lightweight, self-hosted homepage dashboard for homelab environments. Built with **Go**, **HTMX**, **Alpine.js**, and **Tailwind CSS**.
 
-![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---

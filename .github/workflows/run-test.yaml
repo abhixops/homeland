@@ -42,7 +42,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.4.0
+          version: v2.15.0
           # args: --timeout=5m
 
 
@@ -57,7 +57,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        go-version: ["1.25"]   # pin to the version in go.mod
+        go-version: ["1.26"]   # pin to the version in go.mod
         # Add more entries here as needed, e.g. windows-latest, macos-latest
 
     steps:

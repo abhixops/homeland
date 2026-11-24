@@ -6,7 +6,7 @@ COPY web/static/css/app.css web/static/css/
 COPY web/templates/ web/templates/
 RUN npx tailwindcss -i web/static/css/app.css -o web/static/css/tailwind.css --minify
 
-FROM golang:1.25-alpine AS go-builder
+FROM golang:1.26-alpine AS go-builder
 RUN apk add --no-cache git
 WORKDIR /build
 COPY go.mod go.sum ./
