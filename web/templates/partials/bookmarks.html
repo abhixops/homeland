@@ -20,7 +20,7 @@
         <div x-show="open" x-transition.opacity.duration.150ms class="-mx-2">
             {{range $bIdx, $bm := $group.Bookmarks}}
             <a href="{{$bm.URL}}" target="_blank" rel="noopener noreferrer"
-               class="group/bm flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-100 dark:hover:bg-white/[0.07]"
+               class="group/bm flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-200/60 dark:hover:bg-white/[0.07]"
                id="bookmark-{{$gIdx}}-{{$bIdx}}">
                 <!-- Icon or Abbreviation -->
                 <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-100 dark:bg-white/[0.08]">
@@ -41,7 +41,7 @@
                 <div class="min-w-0 flex-1">
                     <p class="truncate text-[13px] font-medium text-surface-700 dark:text-surface-200">{{$bm.Name}}</p>
                     {{if $bm.Description}}
-                    <p class="truncate text-[11px] text-surface-400 dark:text-surface-500">{{$bm.Description}}</p>
+                    <p class="truncate text-[11px] text-surface-500">{{$bm.Description}}</p>
                     {{end}}
                 </div>
 
