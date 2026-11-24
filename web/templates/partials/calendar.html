@@ -6,7 +6,7 @@
     <!-- Day Labels -->
     <div class="grid grid-cols-7 text-center">
         {{range $d := (seq 7)}}
-        <div class="pb-1 text-[11px] font-medium text-surface-400 dark:text-surface-500">
+        <div class="pb-1 text-[11px] font-medium text-surface-500">
             {{if eq $d 0}}Su{{else if eq $d 1}}Mo{{else if eq $d 2}}Tu{{else if eq $d 3}}We{{else if eq $d 4}}Th{{else if eq $d 5}}Fr{{else}}Sa{{end}}
         </div>
         {{end}}
